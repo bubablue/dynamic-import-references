@@ -7,4 +7,5 @@ module.exports = {
   moduleNameMapper: {
     "vscode": "<rootDir>/src/__mocks__/vscode.ts",
   },
+  modulePathIgnorePatterns: ["<rootDir>/out/"],
 };
