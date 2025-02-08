@@ -1,15 +1,50 @@
-import * as assert from 'assert';
+import * as vscode from "vscode";
+import { DynamicReferenceProvider } from "../dynamicReferenceProvider";
+import { activate, deactivate } from "../extension";
 
-// You can import and use all API from the 'vscode' module
-// as well as import your extension to test it
-import * as vscode from 'vscode';
-// import * as myExtension from '../../extension';
+jest.mock("vscode", () => ({
+  ...jest.requireActual("vscode"),
+  languages: {
+    registerReferenceProvider: jest.fn(() => ({
+      dispose: jest.fn(),
+    })),
+  },
+}));
 
-suite('Extension Test Suite', () => {
-	vscode.window.showInformationMessage('Start all tests.');
+jest.mock("../dynamicReferenceProvider", () => ({
+  DynamicReferenceProvider: jest.fn(),
+}));
 
-	test('Sample test', () => {
-		assert.strictEqual(-1, [1, 2, 3].indexOf(5));
-		assert.strictEqual(-1, [1, 2, 3].indexOf(0));
-	});
+describe("VS Code Extension", () => {
+  let context: vscode.ExtensionContext;
+
+  beforeEach(() => {
+    context = { subscriptions: [] } as unknown as vscode.ExtensionContext;
+    jest.clearAllMocks();
+  });
+
+  it("should activate the extension and register a reference provider", () => {
+    activate(context);
+
+    expect(vscode.languages.registerReferenceProvider).toHaveBeenCalledWith(
+      [
+        { language: "javascript", scheme: "file" },
+        { language: "typescript", scheme: "file" },
+        { language: "javascriptreact", scheme: "file" },
+        { language: "typescriptreact", scheme: "file" },
+      ],
+      expect.any(DynamicReferenceProvider)
+    );
+
+    expect(context.subscriptions.length).toBeGreaterThan(0);
+  });
+
+  it("should deactivate the extension and dispose of all subscriptions", () => {
+    activate(context);
+    const mockDisposable = context.subscriptions[0];
+
+    deactivate();
+
+    expect(mockDisposable.dispose).toHaveBeenCalled();
+  });
 });

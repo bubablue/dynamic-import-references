@@ -1,19 +1,19 @@
 {
 	"compilerOptions": {
-	  "module": "NodeNext",          // ✅ Better compatibility with ES Modules
+	  "module": "NodeNext",
 	  "target": "ES2022",
-	  "lib": ["ES2022", "DOM"],      // ✅ Add "DOM" to support browser-related APIs
+	  "lib": ["ES2022", "DOM"],
 	  "sourceMap": true,
 	  "rootDir": "src",
 	  "skipLibCheck": true,
 	  "strict": true,
-	  "noEmit": false,               // ✅ Allow emitting code for the extension
+	  "noEmit": false,
 	  "esModuleInterop": true,
-	  "resolveJsonModule": true,     // ✅ Helps with JSON imports if needed
-	  "forceConsistentCasingInFileNames": true, // ✅ Prevents casing issues (important on macOS/Linux)
-	  "incremental": true            // ✅ Improves performance for large projects
+	  "resolveJsonModule": true,
+	  "forceConsistentCasingInFileNames": true,
+	  "incremental": true
 	},
-	"include": ["src"],              // ✅ Limit scope to the source directory
-	"exclude": ["node_modules", "dist"] // ✅ Avoid unnecessary files
+	"include": ["src"],
+	"exclude": ["node_modules", "dist"]
   }
   
