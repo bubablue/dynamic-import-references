@@ -38,7 +38,7 @@ jobs:
       - name: Publish to VS Code Marketplace
         run: npx vsce publish --pat ${{ secrets.AZURE_DEVOPS_TOKEN }}
 
-      - name: Publish to Open VSX (optional)
+      - name: Publish to Open VSX
         run: npx ovsx publish -p ${{ secrets.OVSX_TOKEN }}
 
       - name: Create GitHub Release
