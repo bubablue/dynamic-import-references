@@ -39,14 +39,6 @@ This extension ensures that references to dynamically imported modules are prope
 
 ---
 
-## Commands
-
-| Command                                     | Description                                     | Shortcut |
-|---------------------------------------------|-----------------------------------------------|----------|
-| `dynamic-import-references.findReferences` | Find references including dynamic imports.   | N/A      |
-
----
-
 ## Supported Languages
 
 - JavaScript (`.js`, `.jsx`)
