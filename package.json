@@ -13,6 +13,7 @@
   },
   "categories": [
     "Programming Languages",
+    "Language Packs",
     "Other"
   ],
   "activationEvents": [
@@ -27,28 +28,6 @@
       {
         "command": "dynamic-import-references.findReferences",
         "title": "Find References Including Dynamic Imports"
-      }
-    ],
-    "languages": [
-      {
-        "id": "javascript",
-        "aliases": [
-          "JavaScript"
-        ],
-        "extensions": [
-          ".js",
-          ".jsx"
-        ]
-      },
-      {
-        "id": "typescript",
-        "aliases": [
-          "TypeScript"
-        ],
-        "extensions": [
-          ".ts",
-          ".tsx"
-        ]
       }
     ]
   },
@@ -90,7 +69,7 @@
     "@types/for-each": "^0.3.3",
     "@types/jest": "^29.5.14",
     "@types/mocha": "^10.0.10",
-    "@types/node": "~20.17.19",
+    "@types/node": "~22.13.4",
     "@types/object-inspect": "^1.13.0",
     "@types/tape": "^5.8.1",
     "@types/vscode": "^1.97.0",
@@ -101,7 +80,7 @@
     "auto-changelog": "^2.5.0",
     "encoding": "^0.1.13",
     "es-value-fixtures": "^1.7.1",
-    "esbuild": "^0.24.2",
+    "esbuild": "^0.25.0",
     "eslint": "^9.20.1",
     "evalmd": "^0.0.19",
     "in-publish": "^2.0.1",
