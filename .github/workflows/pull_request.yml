@@ -18,16 +18,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: 'npm'
 
       - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm install --no-audit --no-fund
 
       - name: Run Linting
-        run: pnpm run lint
+        run: npm run lint
 
       - name: Run Tests
-        run: pnpm run test
+        run: npm run test
 
       - name: Build Extension
-        run: pnpm run package
+        run: npm run package

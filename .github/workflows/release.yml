@@ -19,10 +19,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: 'npm'
 
       - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm install --no-audit --no-fund
 
       - name: Bump Version
         run: |
@@ -30,16 +30,20 @@ jobs:
           git push --follow-tags
 
       - name: Build Extension
-        run: pnpm run package
+        run: npm run package
+
+      - name: Install Publishing Tools
+        run: npm install -g @vscode/vsce ovsx
 
       - name: Publish to VS Code Marketplace
-        run: |
-          npx vsce publish --pat ${{ secrets.VSCE_TOKEN }}
-          npx ovsx publish -p ${{ secrets.OVSX_TOKEN }}
+        run: npx vsce publish --pat ${{ secrets.AZURE_DEVOPS_TOKEN }}
+
+      - name: Publish to Open VSX (optional)
+        run: npx ovsx publish -p ${{ secrets.OVSX_TOKEN }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v$(node -p "require('./package.json').version")
-          name: Release v$(node -p "require('./package.json').version")
+          tag_name: "v$(node -p 'require(\"./package.json\").version')"
+          name: "Release v$(node -p 'require(\"./package.json\").version')"
           body: "🔖 New version released!"
