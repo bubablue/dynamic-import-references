@@ -24,11 +24,6 @@ jobs:
       - name: Install Dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Bump Version
-        run: |
-          npm version patch -m "🔖 Bump version to %s"
-          git push --follow-tags
-
       - name: Build Extension
         run: npm run package
 
