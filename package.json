@@ -83,7 +83,8 @@
     "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "jest --passWithNoTests"
+    "test": "jest --passWithNoTests",
+    "generate-changelog": "github_changelog_generator -u bubablue -p dynamic-import-references -t $GITHUB_TOKEN"
   },
   "devDependencies": {
     "@types/for-each": "^0.3.3",
