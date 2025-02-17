@@ -22,8 +22,13 @@ export class DynamicReferenceProvider implements vscode.ReferenceProvider {
     try {
       const files = await vscode.workspace.findFiles(
         "**/*.{js,jsx,ts,tsx}",
-        "**/node_modules/**"
+        "**/{node_modules,dist,.next}/**"
       );
+
+      console.log(`🔍 Scanning ${files.length} files for references...`);
+      files.forEach((file) => {
+        console.log(`📄 Scanning file: ${file.fsPath}`);
+      });
 
       await Promise.all(
         files.map(async (file) => {
@@ -34,30 +39,123 @@ export class DynamicReferenceProvider implements vscode.ReferenceProvider {
           try {
             const text = await fs.readFile(file.fsPath, "utf8");
 
-            const regex = /(dynamic|lazy)\(.*?import\(['"](.+?)['"]\)/gi;
+            const regex =
+              /(dynamic|lazy)\s*\(\s*\(\s*.*?\s*=>\s*import\(['"](.+?)['"]\)/gi;
 
             let match;
             while ((match = regex.exec(text))) {
               const _importMethod = match[1];
               const importedPath = match[2];
 
-              const absoluteImportPath = path.resolve(
+              console.log(
+                `🔎 Matched dynamic import: ${match[0]} in ${file.fsPath} as ${match[2]}`
+              );
+              console.log(
+                `🔎 Import method: ${file.fsPath} - ${path.dirname(
+                  file.fsPath
+                )} - in ${importedPath}`
+              );
+
+              let absoluteImportPath = path.resolve(
                 path.dirname(file.fsPath),
                 importedPath
               );
+
+              console.log(`Checking: ${absoluteImportPath}`);
+
+              try {
+                const stat = await fs.stat(absoluteImportPath);
+                console.log(`Found: ${absoluteImportPath}`);
+                if (stat.isDirectory()) {
+                  const files = await fs.readdir(absoluteImportPath);
+                  console.log(
+                    `Found ${files.length} files in: ${absoluteImportPath}`
+                  );
+                  const entryFile = files.find((file) =>
+                    /\.(js|jsx|ts|tsx)$/.test(file)
+                  );
+                  if (entryFile) {
+                    console.log(`Found entry file: ${entryFile}`);
+                    absoluteImportPath = path.join(
+                      absoluteImportPath,
+                      entryFile
+                    );
+                  }
+                }
+              } catch {
+                console.warn(
+                  `⚠️ Could not resolve directory: ${absoluteImportPath}, trying extensions...`
+                );
+                const extensions = [".tsx", ".ts", ".jsx", ".js"];
+                let resolved = false;
+                for (const ext of extensions) {
+                  const testPath = `${absoluteImportPath}${ext}`;
+                  try {
+                    await fs.access(testPath);
+                    absoluteImportPath = testPath;
+                    console.log(
+                      `✅ Resolved using extension: ${absoluteImportPath}`
+                    );
+                    resolved = true;
+                    break;
+                  } catch (error) {
+                    console.log(
+                      `🚫 Extension not found: ${testPath} - ${error}`
+                    );
+                  }
+                }
+                if (!resolved) {
+                  console.warn(
+                    `❌ Final resolution failed for: ${absoluteImportPath}`
+                  );
+                }
+              }
+
               const fileName = path.basename(
                 absoluteImportPath,
                 path.extname(absoluteImportPath)
               );
 
-              if (fileName.toLowerCase() === word.toLowerCase()) {
+              // ✅ Extract component name if exported as default
+              let componentName: string | null = null;
+              try {
+                const importedText = await fs.readFile(
+                  absoluteImportPath,
+                  "utf8"
+                );
+                const componentRegex = /export\s+default\s+(\w+)/;
+                const componentMatch = componentRegex.exec(importedText);
+                componentName = componentMatch ? componentMatch[1] : null;
+              } catch (error) {
+                console.log(
+                  `⚠️ Could not read file for component extraction: ${absoluteImportPath}`
+                );
+              }
+
+              console.log(
+                `Comparing: fileName='${fileName}', componentName='${componentName}', word='${word}'`
+              );
+
+              if (
+                fileName.toLowerCase().trim() === word.toLowerCase().trim() ||
+                (componentName &&
+                  componentName.toLowerCase().trim() ===
+                    word.toLowerCase().trim())
+              ) {
                 const index = match.index;
                 const lines = text.slice(0, index).split("\n");
                 const line = lines.length - 1;
                 const char = index - text.lastIndexOf("\n", index - 1) - 1;
 
+                console.log(
+                  `✅ Match found at: ${file.fsPath}:${line + 1}:${char}`
+                );
                 locations.push(
                   new vscode.Location(file, new vscode.Position(line, char))
+                );
+              } else {
+                console.log(
+                  `🚫 No match: '${fileName}' != '${word}', '${componentName}' != '${word}'`
                 );
               }
             }
