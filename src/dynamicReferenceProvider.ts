@@ -25,7 +25,7 @@ export class DynamicReferenceProvider implements vscode.ReferenceProvider {
         "**/{node_modules,dist,.next}/**"
       );
 
-      console.log(`🔍 Scanning ${files.length} files for references...`);
+      // console.log(`🔍 Scanning ${files.length} files for references...`);
       files.forEach((file) => {
         console.log(`📄 Scanning file: ${file.fsPath}`);
       });
@@ -83,9 +83,9 @@ export class DynamicReferenceProvider implements vscode.ReferenceProvider {
                   }
                 }
               } catch {
-                console.warn(
-                  `⚠️ Could not resolve directory: ${absoluteImportPath}, trying extensions...`
-                );
+                // console.warn(
+                //   `⚠️ Could not resolve directory: ${absoluteImportPath}, trying extensions...`
+                // );
                 const extensions = [".tsx", ".ts", ".jsx", ".js"];
                 let resolved = false;
                 for (const ext of extensions) {
@@ -136,11 +136,58 @@ export class DynamicReferenceProvider implements vscode.ReferenceProvider {
                 `Comparing: fileName='${fileName}', componentName='${componentName}', word='${word}'`
               );
 
+              /**
+               * Check if the file path contains the relative import path.
+               * It removes relative parts (`./`, `../`) from paths before checking.
+               *
+               * @param {string} importedPath - The relative or absolute imported path.
+               * @param {string} absoluteImportPath - The absolute file path.
+               * @returns {boolean}
+               * @example
+               * checkIfImportedPathIsInAbsoluteImportPath('./mobile/groups', '/Users/josepejonavarro/Documents/GitHub/bs-logifuture-portals/apps/bs-sportsbook/src/4-features/matches/ui/desktop/groups.tsx');
+               */
+              const isIncluded = (
+                importedPath: string,
+                absoluteImportPath: string
+              ): boolean => {
+                const normalizedImportedPath = path
+                  .normalize(importedPath)
+                  .replace(/^(\.\/|\.\.\/)*/, "");
+  
+                const normalizedAbsoluteImportPath = path
+                  .normalize(absoluteImportPath)
+                  .replace(/\.[jt]sx?$/, "");
+
+                const importedPathArray = normalizedImportedPath.split(
+                  path.sep
+                );
+                const absoluteImportPathArray =
+                  normalizedAbsoluteImportPath.split(path.sep);
+
+                console.log(
+                  "Match found at: --> importedPathArray:",
+                  importedPathArray
+                );
+                console.log(
+                  "Match found at: --> absoluteImportPathArray:",
+                  absoluteImportPathArray
+                );
+
+                const isPathContained =
+                  !absoluteImportPathArray?.length ||
+                  importedPathArray.every((segment) =>
+                    absoluteImportPathArray.includes(segment)
+                  );
+
+                return isPathContained;
+              };
+
               if (
                 fileName.toLowerCase().trim() === word.toLowerCase().trim() ||
                 (componentName &&
                   componentName.toLowerCase().trim() ===
                     word.toLowerCase().trim())
+                // && check that the file path contains the relative import path
               ) {
                 const index = match.index;
                 const lines = text.slice(0, index).split("\n");
@@ -150,9 +197,20 @@ export class DynamicReferenceProvider implements vscode.ReferenceProvider {
                 console.log(
                   `✅ Match found at: ${file.fsPath}:${line + 1}:${char}`
                 );
-                locations.push(
-                  new vscode.Location(file, new vscode.Position(line, char))
+                console.log(
+                  "Match found at Path from dynamic import:",
+                  absoluteImportPath
                 );
+                console.log(" Match found at Path from file:", file.fsPath);
+                console.log(
+                  "Match found at Path from importedPath:",
+                  importedPath
+                );
+                if (isIncluded(importedPath, document.uri.fsPath)) {
+                  locations.push(
+                    new vscode.Location(file, new vscode.Position(line, char))
+                  );
+                }
               } else {
                 console.log(
                   `🚫 No match: '${fileName}' != '${word}', '${componentName}' != '${word}'`
