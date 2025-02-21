@@ -83,6 +83,8 @@ npm run package
 
 ## Contributing
 
+<a href="https://www.freepik.com/icon/search_5459841">Icon by Arkinasi</a>
+
 Contributions are welcome! Please submit issues and pull requests on GitHub.
 
 ---

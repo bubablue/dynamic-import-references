@@ -2,6 +2,145 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as vscode from "vscode";
 
+async function findTsConfig(filePath: string): Promise<string | null> {
+  let currentDir = path.dirname(filePath);
+
+  while (currentDir !== path.parse(currentDir).root) {
+    const tsConfigPath = path.join(currentDir, "tsconfig.json");
+    try {
+      await fs.access(tsConfigPath);
+      return tsConfigPath;
+    } catch (error) {
+      currentDir = path.dirname(currentDir);
+    }
+  }
+
+  return null;
+}
+
+async function loadTsConfig(
+  tsConfigPath: string
+): Promise<Record<string, string[]>> {
+  try {
+    const rawConfig = await fs.readFile(tsConfigPath, "utf8");
+    const config = JSON.parse(rawConfig);
+
+    let paths: Record<string, string[]> = config.compilerOptions?.paths || {};
+
+    if (config.extends) {
+      const extendedTsConfigPath = path.resolve(
+        path.dirname(tsConfigPath),
+        config.extends
+      );
+      const extendedPaths = await loadTsConfig(extendedTsConfigPath);
+      paths = { ...extendedPaths, ...paths };
+    }
+
+    return paths;
+  } catch (error) {
+    console.warn(`Failed to load tsconfig: ${tsConfigPath}`, error);
+    return {};
+  }
+}
+
+// type DataItem = { index: number; part: string };
+
+// const groupConsecutiveIndexes = (arr: DataItem[]): DataItem[][] => {
+//   if (arr.length === 0) return [];
+
+//   // Sort by index in ascending order
+//   const sortedArr = [...arr].sort((a, b) => a.index - b.index);
+
+//   // Use reduce to group consecutive sequences
+//   return sortedArr.reduce<DataItem[][]>((groups, item, i, src) => {
+//     if (i === 0 || item.index !== src[i - 1].index + 1) {
+//       groups.push([]); // Start a new group
+//     }
+//     groups[groups.length - 1].push(item);
+//     return groups;
+//   }, []);
+// };
+
+// function removeDuplicateSuffix(basePath: string, targetPath: string): string {
+//   const baseParts = basePath.split(path.sep);
+//   const targetParts = targetPath.split(path.sep);
+
+//   const commonParts: { index: number; part: string }[] = baseParts
+//     .map((part, index) => {
+//       return { index, part };
+//     })
+//     .filter(({ part }) => targetParts.includes(part));
+
+//   // Group consecutive indexes
+//   const groups = groupConsecutiveIndexes(commonParts);
+
+//   //pick last consecutive group
+//   const lastGroup = groups[groups.length - 1];
+//   const consecutivePath = lastGroup.map(({ part }) => part).join(path.sep);
+
+//   if (basePath.endsWith(consecutivePath)) {
+//     return basePath.replace(consecutivePath, "");
+//   }
+
+//   return basePath;
+// }
+
+const findAllMatchingSuffixPrefix = (basePath: string, targetPath: string) => {
+  const suffixFragments = basePath.split('/');
+  const prefixFragments = targetPath.split('/');
+
+  let matches = [];
+
+  for (let i = 1; i <= Math.min(suffixFragments.length, prefixFragments.length); i++) {
+    const suffix = suffixFragments.slice(-i).join('/');
+    const prefix = prefixFragments.slice(0, i).join('/');
+
+    if (suffix === prefix) {
+      matches.push(suffix);
+    }
+  }
+
+  return matches.length ? matches?.join() : null;
+};
+
+function removeDuplicateSuffix(basePath: string, targetPath: string): string {
+  const commonPath = findAllMatchingSuffixPrefix(basePath, targetPath);
+  if (commonPath) {
+    return basePath.replace(commonPath, '');
+  }
+  return basePath;
+}
+
+
+function resolveAlias(
+  importPath: string,
+  aliases: Record<string, string[]>,
+  tsConfigDir: string
+): string {
+  const aliasEntry = Object.entries(aliases).find(([alias]) =>
+    importPath.startsWith(alias.replace(/\*$/, ""))
+  );
+
+  if (!aliasEntry) {
+    return importPath;
+  }
+
+  const [matchedAlias, targetPaths] = aliasEntry;
+  const aliasPrefix = matchedAlias.replace(/\*$/, "");
+  let aliasTarget = targetPaths[0].replace(/\*$/, "");
+
+  if (!path.isAbsolute(aliasTarget)) {
+    const basePath = removeDuplicateSuffix(tsConfigDir, aliasTarget);
+    aliasTarget = path.resolve(basePath, aliasTarget);
+  }
+  // Strip the alias prefix from importPath
+  const relativeImportPath = importPath.slice(aliasPrefix.length);
+  // Join them for the final absolute path
+  const resolvedPath = path.join(aliasTarget, relativeImportPath);
+
+  return resolvedPath;
+}
+
 export class DynamicReferenceProvider implements vscode.ReferenceProvider {
   async provideReferences(
     document: vscode.TextDocument,
@@ -14,8 +153,12 @@ export class DynamicReferenceProvider implements vscode.ReferenceProvider {
       return [];
     }
 
+    const tsConfigPath = await findTsConfig(document.uri.fsPath);
+    const aliases = tsConfigPath ? await loadTsConfig(tsConfigPath) : {};
+    const tsConfigDir = tsConfigPath ? path.dirname(tsConfigPath) : "";
+
     const word = document.getText(wordRange);
-    console.log(`Searching for references of: ${word}`);
+    // console.log(`Searching for references of: ${word}`);
 
     const locations: vscode.Location[] = [];
 
@@ -45,37 +188,48 @@ export class DynamicReferenceProvider implements vscode.ReferenceProvider {
             let match;
             while ((match = regex.exec(text))) {
               const _importMethod = match[1];
-              const importedPath = match[2];
+              // console.log(
+              //   `🔎 Matched import method: ${match[2]} - alias ${resolveAlias(
+              //     match[2],
+              //     aliases,
+              //     tsConfigDir
+              //   )}`
+              // );
+              const importedPath = tsConfigPath ? resolveAlias(match[2], aliases, tsConfigDir) : match[2];
 
-              console.log(
-                `🔎 Matched dynamic import: ${match[0]} in ${file.fsPath} as ${match[2]}`
-              );
-              console.log(
-                `🔎 Import method: ${file.fsPath} - ${path.dirname(
-                  file.fsPath
-                )} - in ${importedPath}`
-              );
+              // console.log(
+              //   `🔎 Matched dynamic import: ${match[0]} in ${file.fsPath} as ${match[2]}`
+              // );
+              // console.log(
+              //   `🔎 Import method: ${file.fsPath} - ${path.dirname(
+              //     file.fsPath
+              //   )} - in ${importedPath}`
+              // );
 
-              let absoluteImportPath = path.resolve(
-                path.dirname(file.fsPath),
-                importedPath
-              );
+              let absoluteImportPath =
+                match[2] === importedPath
+                  ? path.resolve(path.dirname(file.fsPath), importedPath)
+                  : importedPath;
 
-              console.log(`Checking: ${absoluteImportPath}`);
+              // console.log(`Checking: ${absoluteImportPath}`);
 
               try {
                 const stat = await fs.stat(absoluteImportPath);
-                console.log(`Found: ${absoluteImportPath}`);
+                // console.log(
+                //   `Found: ${absoluteImportPath} - stat is: ${JSON.stringify(
+                //     stat
+                //   )}`
+                // );
                 if (stat.isDirectory()) {
                   const files = await fs.readdir(absoluteImportPath);
-                  console.log(
-                    `Found ${files.length} files in: ${absoluteImportPath}`
-                  );
+                  // console.log(
+                  //   `Found ${files.length} files in: ${absoluteImportPath}`
+                  // );
                   const entryFile = files.find((file) =>
                     /\.(js|jsx|ts|tsx)$/.test(file)
                   );
                   if (entryFile) {
-                    console.log(`Found entry file: ${entryFile}`);
+                    // console.log(`Found entry file: ${entryFile}`);
                     absoluteImportPath = path.join(
                       absoluteImportPath,
                       entryFile
@@ -90,12 +244,13 @@ export class DynamicReferenceProvider implements vscode.ReferenceProvider {
                 let resolved = false;
                 for (const ext of extensions) {
                   const testPath = `${absoluteImportPath}${ext}`;
+                  // console.log(`Test path: ${absoluteImportPath} ${testPath}`);
                   try {
-                    await fs.access(testPath);
+                    await fs.stat(testPath);
                     absoluteImportPath = testPath;
-                    console.log(
-                      `✅ Resolved using extension: ${absoluteImportPath}`
-                    );
+                    // console.log(
+                    //   `✅ Resolved using extension: ${absoluteImportPath}`
+                    // );
                     resolved = true;
                     break;
                   } catch (error) {
@@ -132,9 +287,9 @@ export class DynamicReferenceProvider implements vscode.ReferenceProvider {
                 );
               }
 
-              console.log(
-                `Comparing: fileName='${fileName}', componentName='${componentName}', word='${word}'`
-              );
+              // console.log(
+              //   `Comparing: fileName='${fileName}', componentName='${componentName}', word='${word}'`
+              // );
 
               /**
                * Check if the file path contains the relative import path.
@@ -153,7 +308,7 @@ export class DynamicReferenceProvider implements vscode.ReferenceProvider {
                 const normalizedImportedPath = path
                   .normalize(importedPath)
                   .replace(/^(\.\/|\.\.\/)*/, "");
-  
+
                 const normalizedAbsoluteImportPath = path
                   .normalize(absoluteImportPath)
                   .replace(/\.[jt]sx?$/, "");
@@ -164,14 +319,14 @@ export class DynamicReferenceProvider implements vscode.ReferenceProvider {
                 const absoluteImportPathArray =
                   normalizedAbsoluteImportPath.split(path.sep);
 
-                console.log(
-                  "Match found at: --> importedPathArray:",
-                  importedPathArray
-                );
-                console.log(
-                  "Match found at: --> absoluteImportPathArray:",
-                  absoluteImportPathArray
-                );
+                // console.log(
+                //   "Match found at: --> importedPathArray:",
+                //   importedPathArray
+                // );
+                // console.log(
+                //   "Match found at: --> absoluteImportPathArray:",
+                //   absoluteImportPathArray
+                // );
 
                 const isPathContained =
                   !absoluteImportPathArray?.length ||
@@ -187,25 +342,24 @@ export class DynamicReferenceProvider implements vscode.ReferenceProvider {
                 (componentName &&
                   componentName.toLowerCase().trim() ===
                     word.toLowerCase().trim())
-                // && check that the file path contains the relative import path
               ) {
                 const index = match.index;
                 const lines = text.slice(0, index).split("\n");
                 const line = lines.length - 1;
                 const char = index - text.lastIndexOf("\n", index - 1) - 1;
 
-                console.log(
-                  `✅ Match found at: ${file.fsPath}:${line + 1}:${char}`
-                );
-                console.log(
-                  "Match found at Path from dynamic import:",
-                  absoluteImportPath
-                );
-                console.log(" Match found at Path from file:", file.fsPath);
-                console.log(
-                  "Match found at Path from importedPath:",
-                  importedPath
-                );
+                // console.log(
+                //   `✅ Match found at: ${file.fsPath}:${line + 1}:${char}`
+                // );
+                // console.log(
+                //   "Match found at Path from dynamic import:",
+                //   absoluteImportPath
+                // );
+                // console.log(" Match found at Path from file:", file.fsPath);
+                // console.log(
+                //   "Match found at Path from importedPath:",
+                //   importedPath
+                // );
                 if (isIncluded(importedPath, document.uri.fsPath)) {
                   locations.push(
                     new vscode.Location(file, new vscode.Position(line, char))
@@ -223,7 +377,7 @@ export class DynamicReferenceProvider implements vscode.ReferenceProvider {
         })
       );
 
-      console.log(`Found ${locations.length} references for '${word}'.`);
+      // console.log(`Found ${locations.length} references for '${word}'.`);
     } catch (error) {
       console.error("❌ Error in provideReferences:", error);
     }
