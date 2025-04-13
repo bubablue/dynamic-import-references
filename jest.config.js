@@ -8,4 +8,5 @@ module.exports = {
     "vscode": "<rootDir>/src/__mocks__/vscode.ts",
   },
   modulePathIgnorePatterns: ["<rootDir>/out/"],
+  silent: true,
 };

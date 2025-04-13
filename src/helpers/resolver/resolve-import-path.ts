@@ -1,11 +1,13 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 
+const extensions = [".tsx", ".ts", ".jsx", ".js"];
+const extPattern = /\.(js|jsx|ts|tsx)$/;
+
 export async function resolveImportPath(
   targetPath: string,
   basePath: string
 ): Promise<string> {
-  const extPattern = /\.(js|jsx|ts|tsx)$/;
   const resolvedPath = path.resolve(path.dirname(basePath), targetPath);
 
   try {
@@ -18,7 +20,6 @@ export async function resolveImportPath(
       }
     }
   } catch {
-    const extensions = [".tsx", ".ts", ".jsx", ".js"];
     for (const ext of extensions) {
       const testPath = `${resolvedPath}${ext}`;
       try {
