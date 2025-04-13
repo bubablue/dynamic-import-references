@@ -7,6 +7,12 @@ const vscode = {
     Uri: {
       file: jest.fn().mockImplementation((path) => ({ fsPath: path })),
     },
+    Range: jest.fn().mockImplementation(
+      (startLine: number, startChar: number, endLine: number, endChar: number) => ({
+        start: { line: startLine, char: startChar },
+        end: { line: endLine, char: endChar },
+      })
+    ),
   };
   
   export = vscode;

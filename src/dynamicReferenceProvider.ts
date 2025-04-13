@@ -1,6 +1,11 @@
-import * as fs from "fs/promises";
 import * as path from "path";
 import * as vscode from "vscode";
+import { processFile } from "./helpers/code/process-file";
+import { findFile } from "./helpers/fs/find-file";
+import { loadTsConfig } from "./helpers/ts-config/load-ts-config";
+
+const includedFiles = "**/*.{js,jsx,ts,tsx}";
+const excludedFiles = "**/{node_modules,dist,.next}/**";
 
 export class DynamicReferenceProvider implements vscode.ReferenceProvider {
   async provideReferences(
@@ -14,64 +19,39 @@ export class DynamicReferenceProvider implements vscode.ReferenceProvider {
       return [];
     }
 
-    const word = document.getText(wordRange);
-    console.log(`Searching for references of: ${word}`);
+    const tsConfigPath = await findFile(document.uri.fsPath, "tsconfig.json");
+    const aliases = tsConfigPath ? await loadTsConfig(tsConfigPath) : {};
+    const tsConfigDir = tsConfigPath ? path.dirname(tsConfigPath) : "";
+    const hasAlias = !!tsConfigPath && Object.keys(aliases).length > 0;
 
-    const locations: vscode.Location[] = [];
+    const word = document.getText(wordRange);
 
     try {
       const files = await vscode.workspace.findFiles(
-        "**/*.{js,jsx,ts,tsx}",
-        "**/node_modules/**"
+        includedFiles,
+        excludedFiles
       );
 
-      await Promise.all(
-        files.map(async (file) => {
-          if (token.isCancellationRequested) {
-            return;
-          }
+      const locations = (
+        await Promise.all(
+          files.map((file) =>
+            processFile({
+              file,
+              word,
+              documentPath: document.uri.fsPath,
+              token,
+              aliases,
+              tsConfigDir,
+              hasAlias,
+            })
+          )
+        )
+      ).flat();
 
-          try {
-            const text = await fs.readFile(file.fsPath, "utf8");
-
-            const regex = /(dynamic|lazy)\(.*?import\(['"](.+?)['"]\)/gi;
-
-            let match;
-            while ((match = regex.exec(text))) {
-              const _importMethod = match[1];
-              const importedPath = match[2];
-
-              const absoluteImportPath = path.resolve(
-                path.dirname(file.fsPath),
-                importedPath
-              );
-              const fileName = path.basename(
-                absoluteImportPath,
-                path.extname(absoluteImportPath)
-              );
-
-              if (fileName.toLowerCase() === word.toLowerCase()) {
-                const index = match.index;
-                const lines = text.slice(0, index).split("\n");
-                const line = lines.length - 1;
-                const char = index - text.lastIndexOf("\n", index - 1) - 1;
-
-                locations.push(
-                  new vscode.Location(file, new vscode.Position(line, char))
-                );
-              }
-            }
-          } catch (fileError) {
-            console.error(`❌ Error reading file: ${file.fsPath}`, fileError);
-          }
-        })
-      );
-
-      console.log(`Found ${locations.length} references for '${word}'.`);
+      return locations;
     } catch (error) {
-      console.error("❌ Error in provideReferences:", error);
+      console.error("Error in provideReferences:", error);
+      return [];
     }
-
-    return locations;
   }
 }
