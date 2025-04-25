@@ -1,11 +1,12 @@
 # Changelog
 
-## [0.1.1](https://github.com/bubablue/dynamic-import-references/tree/0.1.1) (2025-02-14)
+## [v0.1.0](https://github.com/bubablue/dynamic-import-references/tree/v0.1.0) (2025-04-13)
 
-[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/8de517557934f429cebbfff9a492c757788b43e4...0.1.1)
+[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/8de517557934f429cebbfff9a492c757788b43e4...v0.1.0)
 
 **Merged pull requests:**
 
+- feat\(references\): Add dynamic import references [\#2](https://github.com/bubablue/dynamic-import-references/pull/2) ([bubablue](https://github.com/bubablue))
 - Create LICENSE [\#1](https://github.com/bubablue/dynamic-import-references/pull/1) ([bubablue](https://github.com/bubablue))
 
 

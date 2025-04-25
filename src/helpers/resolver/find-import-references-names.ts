@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { tsx_full_dynamic_regex } from "../regexp";
 import { resolveAlias } from "../ts-config/resolve-alias";
 
 interface FindImportRefNamesParams {
@@ -8,10 +9,6 @@ interface FindImportRefNamesParams {
   tsConfigDir?: string;
   hasAlias: boolean;
 }
-
-const regex =
-  /(const|let|var|function)\s+(\w+)\s*=\s*(?:dynamic|lazy)\s*\(\s*\(\s*.*?\s*=>\s*import\(['"](.+?)['"]\)/gi;
-
 
 export async function findImportRefNames({
   fileUri,
@@ -25,10 +22,10 @@ export async function findImportRefNames({
       await vscode.workspace.fs.readFile(fileUri)
     );
 
-    const matches = [...fileContent.matchAll(regex)];
+    const matches = [...fileContent.matchAll(tsx_full_dynamic_regex)];
 
     const resolve = (match: string) =>
-      aliases && tsConfigDir && hasAlias
+      !!aliases && !!tsConfigDir && !!hasAlias
         ? resolveAlias(match, aliases, tsConfigDir)
         : match;
 
