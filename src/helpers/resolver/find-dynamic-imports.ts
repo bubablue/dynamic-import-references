@@ -1,10 +1,9 @@
 import * as vscode from "vscode";
 import { getMatchingLocations } from "../code/get-matching-locations";
+import { tsx_dynamic_regex } from "../regexp";
 import { resolveAlias } from "../ts-config/resolve-alias";
 import { extractComponentNames } from "./find-component-name";
 import { resolveImportPath } from "./resolve-import-path";
-
-const regex = /(dynamic|lazy)\s*\(\s*\(\s*.*?\s*=>\s*import\(['"](.+?)['"]\)/gi;
 
 interface FindDynamicImportsParams {
   file: vscode.Uri;
@@ -25,24 +24,33 @@ export async function findDynamicImports({
   aliases,
   hasAlias,
 }: FindDynamicImportsParams): Promise<vscode.Location[]> {
-  const matches = Array.from(text.matchAll(regex));
+  const matches = Array.from(text.matchAll(tsx_dynamic_regex));
+
+  if (!matches?.length) {
+    return [];
+  }
 
   const locations = await Promise.all(
     matches.map(async (match) => {
       const importedPath =
-        hasAlias && !!aliases && tsConfigDir
-          ? resolveAlias(match[2], aliases, tsConfigDir)
+        !!hasAlias && !!aliases && !!tsConfigDir
+          ? resolveAlias(match[match.length - 1], aliases, tsConfigDir)
           : match[2];
 
-      const absoluteImportPath = await resolveImportPath(
+      const absoluteImportPaths = await resolveImportPath(
         importedPath,
         file.fsPath
       );
 
-      const componentNames = await extractComponentNames(
-        absoluteImportPath,
-        documentPath
-      );
+      const componentNames = await Promise.all(
+        absoluteImportPaths.map(async (absolutePath) => {
+          const componentName = await extractComponentNames(
+            absolutePath,
+            documentPath
+          );
+          return componentName;
+        })
+      ).then((results) => results.flat());
 
       if (!componentNames?.length) {
         return [];

@@ -1,22 +1,23 @@
 import * as fs from "fs/promises";
 import * as path from "path";
-
-const extensions = [".tsx", ".ts", ".jsx", ".js"];
-const extPattern = /\.(js|jsx|ts|tsx)$/;
+import { ext_pattern_regex, extensions } from "../regexp";
 
 export async function resolveImportPath(
   targetPath: string,
   basePath: string
-): Promise<string> {
+): Promise<string[]> {
   const resolvedPath = path.resolve(path.dirname(basePath), targetPath);
 
   try {
     const stat = await fs.stat(resolvedPath);
     if (stat.isDirectory()) {
       const files = await fs.readdir(resolvedPath);
-      const entryFile = files.find((file) => extPattern.test(file));
-      if (entryFile) {
-        return path.join(resolvedPath, entryFile);
+      const entryFiles = files.filter((file) => ext_pattern_regex.test(file));
+      if (entryFiles?.length) {
+        const entryPaths = entryFiles.map((file) =>
+          path.join(resolvedPath, file)
+        );
+        return entryPaths;
       }
     }
   } catch {
@@ -24,13 +25,11 @@ export async function resolveImportPath(
       const testPath = `${resolvedPath}${ext}`;
       try {
         await fs.stat(testPath);
-        return testPath;
-      } catch {
-        console.log(`🚫 Extension not found: ${testPath}`);
-      }
+        return [testPath];
+      } catch {}
     }
   }
 
   console.warn(`❌ Final resolution failed for: ${resolvedPath}`);
-  return resolvedPath;
+  return [];
 }

@@ -1,11 +1,9 @@
 import * as path from "path";
-
-export const extensionPattern = /\.[jt]sx?$/;
-const relativePattern = /^(\.\/|\.\.\/)*/;
+import { ext_pattern_regex, relative_dir_regex } from "../regexp";
 
 export const isIncluded = (target: string, base: string): boolean => {
-  const cleanTarget = path.normalize(target).replace(relativePattern, "");
-  const cleanBase = path.normalize(base).replace(extensionPattern, "");
+  const cleanTarget = path.normalize(target).replace(relative_dir_regex, "");
+  const cleanBase = path.normalize(base).replace(ext_pattern_regex, "");
 
   const targetParts = cleanTarget.split(path.sep);
   const baseParts = cleanBase.split(path.sep);

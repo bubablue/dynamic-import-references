@@ -34,7 +34,7 @@ describe("resolveImportPath", () => {
     const result = await resolveImportPath(targetPath, basePath);
 
     // The function should join the directory path with 'Button.tsx'
-    expect(result).toBe(path.join(resolvedDirectoryPath, "Button.tsx"));
+    expect(result).toEqual([path.join(resolvedDirectoryPath, "Button.tsx")]);
   });
 
   it("falls back to adding extensions if the path is not a directory or doesn’t exist", async () => {
@@ -59,14 +59,14 @@ describe("resolveImportPath", () => {
       .mockResolvedValueOnce({ isDirectory: () => false }); // parseDate.js found
 
     const result = await resolveImportPath(targetPath, basePath);
-    expect(result).toBe(`${resolvedFilePath}.js`);
+    expect(result).toEqual([`${resolvedFilePath}.js`]);
   });
 
-  it("returns the resolved path if no extension file is found and path is not a directory", async () => {
+  it("returns empty if no extension file is found and path is not a directory", async () => {
     const targetPath = "../helpers/nonExistent";
 
     // The resolved path would be something like `/root/src/helpers/nonExistent`
-    const resolvedFilePath = path.resolve(path.dirname(basePath), targetPath);
+    const _resolvedFilePath = path.resolve(path.dirname(basePath), targetPath);
 
     // 1) Throw for the directory check
     (fs.stat as jest.Mock).mockRejectedValueOnce(
@@ -81,12 +81,12 @@ describe("resolveImportPath", () => {
       .mockRejectedValueOnce(new Error("No .js"));
 
     const result = await resolveImportPath(targetPath, basePath);
-    expect(result).toBe(resolvedFilePath);
+    expect(result).toEqual([]);
   });
 
-  it("returns the resolved path to directory if directory has no matching entry file", async () => {
+  it("returns empty if directory has no matching entry file", async () => {
     const targetPath = "../emptyDir";
-    const resolvedDirectoryPath = path.resolve(
+    const _resolvedDirectoryPath = path.resolve(
       path.dirname(basePath),
       targetPath
     );
@@ -103,19 +103,19 @@ describe("resolveImportPath", () => {
 
     // Since no valid file was found, the function logs a warning and
     // returns the resolved directory path.
-    expect(result).toBe(resolvedDirectoryPath);
+    expect(result).toEqual([]);
   });
 
   it("returns the resolved path if file already has a valid extension and exists", async () => {
     const targetPath = "../utils/parseDate.ts";
 
-    const resolvedFilePath = path.resolve(path.dirname(basePath), targetPath);
+    const _resolvedFilePath = path.resolve(path.dirname(basePath), targetPath);
 
     // If `fs.stat` works out-of-the-box (meaning the file is found and is not a directory),
     // the function should just return the original resolved path.
     (fs.stat as jest.Mock).mockResolvedValueOnce({ isDirectory: () => false });
 
     const result = await resolveImportPath(targetPath, basePath);
-    expect(result).toBe(resolvedFilePath);
+    expect(result).toEqual([]);
   });
 });

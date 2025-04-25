@@ -65,7 +65,7 @@ describe("findDynamicImports", () => {
       let Another = lazy(() => import('./NoExports'));
     `;
     // Provide dummy resolved path
-    mockedResolveImportPath.mockResolvedValue("/absolute/path/NoExports.ts");
+    mockedResolveImportPath.mockResolvedValue(["/absolute/path/NoExports.ts"]);
     // Return no component names
     mockedExtractComponentNames.mockResolvedValue([]);
 
@@ -89,9 +89,9 @@ describe("findDynamicImports", () => {
       const B = lazy(() => import('./SomeComponent'));
     `;
     // Suppose these are the resolved/aliased paths
-    mockedResolveImportPath.mockResolvedValue(
-      "/absolute/path/SomeComponent.ts"
-    );
+    mockedResolveImportPath.mockResolvedValue([
+      "/absolute/path/SomeComponent.ts",
+    ]);
     // Suppose `extractComponentNames` finds 2 named exports
     mockedExtractComponentNames.mockResolvedValue(["CompOne", "CompTwo"]);
     // Suppose each component leads to 1 location
@@ -162,7 +162,7 @@ describe("findDynamicImports", () => {
   it("resolves aliases if `hasAlias` is true", async () => {
     const text = `const Aliased = dynamic(() => import('@/Components/Aliased'));`;
     mockedResolveAlias.mockReturnValue("/resolved/path/Aliased.ts");
-    mockedResolveImportPath.mockResolvedValue("/absolute/path/Aliased.ts");
+    mockedResolveImportPath.mockResolvedValue(["/absolute/path/Aliased.ts"]);
     mockedExtractComponentNames.mockResolvedValue(["AliasedComp"]);
     mockedGetMatchingLocations.mockResolvedValue([
       new vscode.Location(fileUri, new vscode.Position(5, 10)),

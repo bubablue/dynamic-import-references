@@ -1,7 +1,5 @@
 import * as fs from "fs/promises";
-
-const regex =
-  /export\s+(?:default\s+)?(?:const|let|var|function|class)?\s*(\w+)/g;
+import { ts_declare_regex } from "../regexp";
 
 export async function extractComponentNames(
   filePath: string,
@@ -13,7 +11,9 @@ export async function extractComponentNames(
 
   try {
     const text = await fs.readFile(filePath, "utf8");
-    const matches = [...text.matchAll(regex)].map((match) => match[1]);
+    const matches = [...text.matchAll(ts_declare_regex)].map(
+      (match) => match[1]
+    );
 
     return matches.length > 0 ? matches : [];
   } catch {

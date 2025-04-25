@@ -1,7 +1,7 @@
 {
     "manifestVersion": 1,
     "id": "dynamic-import-references",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "name": "Dynamic Import References",
     "publisher": "bubablue00",
     "description": "Enhances VS Code's 'Find All References' feature by including dynamic and lazy imports in JavaScript and TypeScript files.",
