@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.2](https://github.com/bubablue/dynamic-import-references/tree/0.1.2) (2025-05-07)
+
+[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v0.1.1...0.1.2)
+
+**Merged pull requests:**
+
+- feat\(basename-paths\): Remove not matching directories from locations [\#4](https://github.com/bubablue/dynamic-import-references/pull/4) ([bubablue](https://github.com/bubablue))
+
+## [v0.1.1](https://github.com/bubablue/dynamic-import-references/tree/v0.1.1) (2025-04-25)
+
+[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v0.1.0...v0.1.1)
+
+**Merged pull requests:**
+
+- feat\(async-declare\): Add support for async functions [\#3](https://github.com/bubablue/dynamic-import-references/pull/3) ([bubablue](https://github.com/bubablue))
+
 ## [v0.1.0](https://github.com/bubablue/dynamic-import-references/tree/v0.1.0) (2025-04-13)
 
 [Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/8de517557934f429cebbfff9a492c757788b43e4...v0.1.0)
