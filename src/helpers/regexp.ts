@@ -9,6 +9,8 @@ export const tsx_full_dynamic_regex =
 
 export const ext_pattern_regex = /\.(m?js|m?ts|jsx|tsx)$/;
 
+export const index_pattern_regex = /index(\.(ts|tsx|js|jsx|mjs|cjs))?$/;
+
 export const relative_dir_regex = /^(\.\/|\.\.\/)*/;
 
 export const extensions = [".tsx", ".ts", ".jsx", ".js"];

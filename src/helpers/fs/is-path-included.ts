@@ -1,15 +1,30 @@
 import * as path from "path";
-import { ext_pattern_regex, relative_dir_regex } from "../regexp";
+import {
+  ext_pattern_regex,
+  index_pattern_regex,
+  relative_dir_regex,
+} from "../regexp";
 
 export const isIncluded = (target: string, base: string): boolean => {
-  const cleanTarget = path.normalize(target).replace(relative_dir_regex, "");
-  const cleanBase = path.normalize(base).replace(ext_pattern_regex, "");
+  const normalizeAndClean = (input: string) => {
+    const extension = path.normalize(input).replace(ext_pattern_regex, "");
+    const relativeDir = extension.replace(relative_dir_regex, "");
+    const basename = path.basename(relativeDir);
+    const dirname = path.dirname(relativeDir);
 
-  const targetParts = cleanTarget.split(path.sep);
-  const baseParts = cleanBase.split(path.sep);
+    const normalized = index_pattern_regex.test(basename)
+      ? dirname
+      : relativeDir;
 
-  return (
-    baseParts.length === 0 ||
-    targetParts.every((part) => baseParts.includes(part))
-  );
+    return normalized.split(path.sep).filter(Boolean);
+  };
+
+  const targetParts = normalizeAndClean(target);
+  const baseParts = normalizeAndClean(base);
+
+  const included =
+    targetParts.every((part) => baseParts.includes(part)) &&
+    baseParts?.[baseParts.length - 1] === targetParts?.[targetParts.length - 1];
+
+  return baseParts.length === 0 || included;
 };
