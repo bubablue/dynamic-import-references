@@ -32,10 +32,11 @@ export async function findDynamicImports({
 
   const locations = await Promise.all(
     matches.map(async (match) => {
+      const resolvedPath = match[match.length - 1];
       const importedPath =
         !!hasAlias && !!aliases && !!tsConfigDir
-          ? resolveAlias(match[match.length - 1], aliases, tsConfigDir)
-          : match[2];
+          ? resolveAlias(resolvedPath, aliases, tsConfigDir)
+          : resolvedPath;
 
       const absoluteImportPaths = await resolveImportPath(
         importedPath,

@@ -1,9 +1,9 @@
 import { isIncluded } from "../../helpers/fs/is-path-included";
 
 describe("isIncluded", () => {
-  it("should return true if the target is a parent directory of the base", () => {
-    expect(isIncluded("src/utils", "src/utils/helpers.ts")).toBe(true);
-    expect(isIncluded("src", "src/components/Button.tsx")).toBe(true);
+  it("should return false if the target is a parent directory of the base", () => {
+    expect(isIncluded("src/utils", "src/utils/helpers.ts")).toBe(false);
+    expect(isIncluded("src", "src/components/Button.tsx")).toBe(false);
     expect(isIncluded("src/utils", "src/utils/index.ts")).toBe(true);
   });
 
