@@ -25,7 +25,7 @@
 </div>
 
 <p align="center">
-  <img src="./assets/DynamicImportReferences.gif" alt="Dynamic Import References Demo" width="800"/>
+  <img src="https://raw.githubusercontent.com/bubablue/dynamic-import-references/master/assets/DynamicImportReferences.gif" alt="Demo" width="800"/>
 </p>
 
 <div align="center">
@@ -123,8 +123,6 @@ Download the latest `.vsix` file from [releases](https://github.com/bubablue/dyn
 3. **Select "Find All References"** (or press `Shift+F12`)
 4. **Enjoy complete results** including lazy and dynamic imports! 🎉
 
-<img src="https://user-images.githubusercontent.com/placeholder/demo-usage.gif" alt="Usage Demo" width="600"/>
-
 > **Pro Tip:** Works especially well with React components that are code-split using `React.lazy()` or Next.js `dynamic()` imports!
 
 ## 📋 Supported Patterns & Languages
@@ -166,7 +164,6 @@ const TypedComponent: React.ComponentType = lazy(() => import('./TypedComponent'
 ```javascript
 // These patterns are NOT detected by this extension:
 const module = await import('./module');
-import('./module').then(module => {});
 const { Component } = await import('./Component');
 ```
 
