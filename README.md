@@ -20,7 +20,7 @@
     <img src="https://custom-icon-badges.demolab.com/badge/%20License-MIT-007acc?style=for-the-badge&logo=law&logoColor=white&labelColor=1a1a1a&logoWidth=20" alt="License" style="border-radius: 12px; padding: 2px; box-shadow: 0 2px 8px rgba(0,122,204,0.3); transition: all 0.3s ease;"/>
   </a>
   <a href="https://github.com/bubablue/dynamic-import-references/stargazers" style="margin: 0 8px 12px 8px; display: inline-block;">
-    <img src="https://custom-icon-badges.demolab.com/github/stars/bubablue/dynamic-import-references?style=for-the-badge&color=ffd700&labelColor=1a1a1a&logo=star&logoColor=white&logoWidth=20&label=⭐%20Stars" alt="GitHub Stars" style="border-radius: 12px; padding: 2px; box-shadow: 0 2px 8px rgba(255,215,0,0.3); transition: all 0.3s ease;"/>
+    <img src="https://custom-icon-badges.demolab.com/github/stars/bubablue/dynamic-import-references?style=for-the-badge&color=ffd700&labelColor=1a1a1a&logo=star&logoColor=white&logoWidth=20&label=%20Stars" alt="GitHub Stars" style="border-radius: 12px; padding: 2px; box-shadow: 0 2px 8px rgba(255,215,0,0.3); transition: all 0.3s ease;"/>
   </a>
 </div>
 
