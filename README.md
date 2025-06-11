@@ -47,10 +47,6 @@
 
 ## ✨ Why You'll Love This Extension
 
-<table>
-<tr>
-<td width="50%">
-
 ### 🎯 **Smart React & Next.js Detection**
 Automatically finds React lazy and Next.js dynamic imports that VS Code's built-in search misses:
 ```jsx
@@ -59,9 +55,6 @@ const LazyComponent = React.lazy(() => import('./MyComponent'));
 const DynamicComponent = dynamic(() => import('./MyComponent'));
 ```
 
-</td>
-<td width="50%">
-
 ### ⚡ **Zero Configuration**
 Just install and go! Works seamlessly with:
 - **React** code splitting with `React.lazy()`
@@ -69,19 +62,11 @@ Just install and go! Works seamlessly with:
 - Any React-based framework using these patterns
 - Custom lazy loading implementations
 
-</td>
-</tr>
-<tr>
-<td width="50%">
-
 ### 🔧 **Developer Friendly**
 - **No performance impact** - only runs when you need it
 - **TypeScript aware** - understands your type definitions
 - **Path resolution** - handles aliases and relative imports
 - **Monorepo ready** - works with complex project structures
-
-</td>
-<td width="50%">
 
 ### 🎨 **Perfect For React Ecosystems**
 Designed specifically for React and Next.js projects:
@@ -89,11 +74,7 @@ Designed specifically for React and Next.js projects:
 - 🔺 **Next.js** with dynamic imports
 - 📱 **React Native** Metro bundler
 - 🖼️ **Gatsby** code splitting
-- 📦 Any React-based framework
-
-</td>
-</tr>
-</table>  
+- 📦 Any React-based framework  
 
 ## 🚀 Quick Start
 
