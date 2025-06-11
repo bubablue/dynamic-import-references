@@ -20,12 +20,12 @@
     <img src="https://custom-icon-badges.demolab.com/badge/%20License-MIT-007acc?style=for-the-badge&logo=law&logoColor=white&labelColor=1a1a1a&logoWidth=20" alt="License" style="border-radius: 12px; padding: 2px; box-shadow: 0 2px 8px rgba(0,122,204,0.3); transition: all 0.3s ease;"/>
   </a>
   <a href="https://github.com/bubablue/dynamic-import-references/stargazers" style="margin: 0 8px 12px 8px; display: inline-block;">
-    <img src="https://custom-icon-badges.demolab.com/github/stars/bubablue/dynamic-import-references?style=for-the-badge&color=ffd700&labelColor=1a1a1a&logo=star&logoColor=white&logoWidth=20&label=⭐%20Stars" alt="GitHub Stars" style="border-radius: 12px; padding: 2px; box-shadow: 0 2px 8px rgba(255,215,0,0.3); transition: all 0.3s ease;"/>
+    <img src="https://custom-icon-badges.demolab.com/github/stars/bubablue/dynamic-import-references?style=for-the-badge&color=ffd700&labelColor=1a1a1a&logo=star&logoColor=white&logoWidth=20&label=%20Stars" alt="GitHub Stars" style="border-radius: 12px; padding: 2px; box-shadow: 0 2px 8px rgba(255,215,0,0.3); transition: all 0.3s ease;"/>
   </a>
 </div>
 
 <p align="center">
-  <img src="./assets/DynamicImportReferences.gif" alt="Dynamic Import References Demo" width="800"/>
+  <img src="https://raw.githubusercontent.com/bubablue/dynamic-import-references/master/assets/DynamicImportReferences.gif" alt="Demo" width="800"/>
 </p>
 
 <div align="center">
@@ -47,10 +47,6 @@
 
 ## ✨ Why You'll Love This Extension
 
-<table>
-<tr>
-<td width="50%">
-
 ### 🎯 **Smart React & Next.js Detection**
 Automatically finds React lazy and Next.js dynamic imports that VS Code's built-in search misses:
 ```jsx
@@ -59,9 +55,6 @@ const LazyComponent = React.lazy(() => import('./MyComponent'));
 const DynamicComponent = dynamic(() => import('./MyComponent'));
 ```
 
-</td>
-<td width="50%">
-
 ### ⚡ **Zero Configuration**
 Just install and go! Works seamlessly with:
 - **React** code splitting with `React.lazy()`
@@ -69,19 +62,11 @@ Just install and go! Works seamlessly with:
 - Any React-based framework using these patterns
 - Custom lazy loading implementations
 
-</td>
-</tr>
-<tr>
-<td width="50%">
-
 ### 🔧 **Developer Friendly**
 - **No performance impact** - only runs when you need it
 - **TypeScript aware** - understands your type definitions
 - **Path resolution** - handles aliases and relative imports
 - **Monorepo ready** - works with complex project structures
-
-</td>
-<td width="50%">
 
 ### 🎨 **Perfect For React Ecosystems**
 Designed specifically for React and Next.js projects:
@@ -89,11 +74,7 @@ Designed specifically for React and Next.js projects:
 - 🔺 **Next.js** with dynamic imports
 - 📱 **React Native** Metro bundler
 - 🖼️ **Gatsby** code splitting
-- 📦 Any React-based framework
-
-</td>
-</tr>
-</table>  
+- 📦 Any React-based framework  
 
 ## 🚀 Quick Start
 
@@ -122,8 +103,6 @@ Download the latest `.vsix` file from [releases](https://github.com/bubablue/dyn
 2. **Right-click** on a component name that's used in `React.lazy()` or `dynamic()`
 3. **Select "Find All References"** (or press `Shift+F12`)
 4. **Enjoy complete results** including lazy and dynamic imports! 🎉
-
-<img src="https://user-images.githubusercontent.com/placeholder/demo-usage.gif" alt="Usage Demo" width="600"/>
 
 > **Pro Tip:** Works especially well with React components that are code-split using `React.lazy()` or Next.js `dynamic()` imports!
 
@@ -166,7 +145,6 @@ const TypedComponent: React.ComponentType = lazy(() => import('./TypedComponent'
 ```javascript
 // These patterns are NOT detected by this extension:
 const module = await import('./module');
-import('./module').then(module => {});
 const { Component } = await import('./Component');
 ```
 
