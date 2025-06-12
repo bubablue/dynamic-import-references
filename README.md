@@ -44,22 +44,22 @@
 
 ## 📑 Table of Contents
 
-- [✨ Why You'll Love This Extension](#-why-youll-love-this-extension)
-  - [🎯 Smart React & Next.js Detection](#-smart-react--nextjs-detection)
-  - [⚡ Zero Configuration](#-zero-configuration)
-  - [🔧 Developer Friendly](#-developer-friendly)
-  - [🎨 Perfect For React Ecosystems](#-perfect-for-react-ecosystems)
-- [🚀 Quick Start](#-quick-start)
-  - [📦 Installation](#-installation-click-to-expand)
-  - [🎯 How to Use](#-how-to-use)
-- [📋 Supported Patterns & Languages](#-supported-patterns--languages)
-  - [🔍 Detection Examples](#-detection-examples)
-- [⚙️ Configuration](#️-configuration)
-- [🛠️ Development & Contributing](#️-development--contributing)
-  - [🚀 Local Development Setup](#-local-development-setup)
-  - [🤝 How to Contribute](#-how-to-contribute)
-- [💝 Support](#-support)
-- [📄 License](#-license)
+- ✨ [Why You'll Love This Extension](#-why-youll-love-this-extension)
+  - 🎯 [Smart React & Next.js Detection](#-smart-react--nextjs-detection)
+  - ⚡ [Zero Configuration](#-zero-configuration)
+  - 🔧 [Developer Friendly](#-developer-friendly)
+  - 🎨 [Perfect For React Ecosystems](#-perfect-for-react-ecosystems)
+- 🚀 [Quick Start](#-quick-start)
+  - 📦 [Installation](#-installation-click-to-expand)
+  - 🎯 [How to Use](#-how-to-use)
+- 📋 [Supported Patterns & Languages](#-supported-patterns--languages)
+  - 🔍 [Detection Examples](#-detection-examples)
+- ⚙️ [Configuration](#️-configuration)
+- 🛠️ [Development & Contributing](#️-development--contributing)
+  - 🚀 [Local Development Setup](#-local-development-setup)
+  - 🤝 [How to Contribute](#-how-to-contribute)
+- 💝 [Support](#-support)
+- 📄 [License](#-license)
 
 
 ## ✨ Why You'll Love This Extension
