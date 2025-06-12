@@ -1,8 +1,18 @@
 # Changelog
 
-## [0.1.2](https://github.com/bubablue/dynamic-import-references/tree/0.1.2) (2025-05-07)
+## [0.1.3](https://github.com/bubablue/dynamic-import-references/tree/0.1.3) (2025-06-12)
 
-[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v0.1.1...0.1.2)
+[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v0.1.2...0.1.3)
+
+**Merged pull requests:**
+
+- Update readme links [\#7](https://github.com/bubablue/dynamic-import-references/pull/7) ([bubablue](https://github.com/bubablue))
+- Update readme to not use custom styles [\#6](https://github.com/bubablue/dynamic-import-references/pull/6) ([bubablue](https://github.com/bubablue))
+- Update readme [\#5](https://github.com/bubablue/dynamic-import-references/pull/5) ([bubablue](https://github.com/bubablue))
+
+## [v0.1.2](https://github.com/bubablue/dynamic-import-references/tree/v0.1.2) (2025-05-07)
+
+[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v0.1.1...v0.1.2)
 
 **Merged pull requests:**
 
