@@ -169,21 +169,6 @@ const { Component } = await import('./Component');
 
 **Zero configuration required!** 🎉 The extension works automatically when enabled.
 
-<details>
-<summary><strong>🔧 Advanced Settings (Optional)</strong></summary>
-
-While the extension works out of the box, you can customize its behavior in VS Code settings:
-
-```json
-{
-  "dynamicImportReferences.enabled": true,
-  "dynamicImportReferences.includePatterns": ["**/*.{js,jsx,ts,tsx}"],
-  "dynamicImportReferences.excludePatterns": ["**/node_modules/**"]
-}
-```
-
-</details>
-
 ## 🛠️ Development & Contributing
 
 <details>
@@ -252,6 +237,8 @@ We welcome contributions! Here's how you can help:
 - Open a Pull Request
 
 </details>
+
+<br/>
 
 <table>
 <tr>
