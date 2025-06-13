@@ -44,22 +44,22 @@
 
 ## 📑 Table of Contents
 
-- [✨ Why You'll Love This Extension](#-why-youll-love-this-extension)
-  - [🎯 Smart React & Next.js Detection](#-smart-react--nextjs-detection)
-  - [⚡ Zero Configuration](#-zero-configuration)
-  - [🔧 Developer Friendly](#-developer-friendly)
-  - [🎨 Perfect For React Ecosystems](#-perfect-for-react-ecosystems)
-- [🚀 Quick Start](#-quick-start)
-  - [📦 Installation](#-installation-click-to-expand)
-  - [🎯 How to Use](#-how-to-use)
-- [📋 Supported Patterns & Languages](#-supported-patterns--languages)
-  - [🔍 Detection Examples](#-detection-examples)
-- [⚙️ Configuration](#️-configuration)
-- [🛠️ Development & Contributing](#️-development--contributing)
-  - [🚀 Local Development Setup](#-local-development-setup)
-  - [🤝 How to Contribute](#-how-to-contribute)
-- [💝 Support](#-support)
-- [📄 License](#-license)
+- ✨ [Why You'll Love This Extension](#-why-youll-love-this-extension)
+  - 🎯 [Smart React & Next.js Detection](#-smart-react--nextjs-detection)
+  - ⚡ [Zero Configuration](#-zero-configuration)
+  - 🔧 [Developer Friendly](#-developer-friendly)
+  - 🎨 [Perfect For React Ecosystems](#-perfect-for-react-ecosystems)
+- 🚀 [Quick Start](#-quick-start)
+  - 📦 [Installation](#-installation-click-to-expand)
+  - 🎯 [How to Use](#-how-to-use)
+- 📋 [Supported Patterns & Languages](#-supported-patterns--languages)
+  - 🔍 [Detection Examples](#-detection-examples)
+- ⚙️ [Configuration](#️-configuration)
+- 🛠️ [Development & Contributing](#️-development--contributing)
+  - 🚀 [Local Development Setup](#-local-development-setup)
+  - 🤝 [How to Contribute](#-how-to-contribute)
+- 💝 [Support](#-support)
+- 📄 [License](#-license)
 
 
 ## ✨ Why You'll Love This Extension
@@ -169,21 +169,6 @@ const { Component } = await import('./Component');
 
 **Zero configuration required!** 🎉 The extension works automatically when enabled.
 
-<details>
-<summary><strong>🔧 Advanced Settings (Optional)</strong></summary>
-
-While the extension works out of the box, you can customize its behavior in VS Code settings:
-
-```json
-{
-  "dynamicImportReferences.enabled": true,
-  "dynamicImportReferences.includePatterns": ["**/*.{js,jsx,ts,tsx}"],
-  "dynamicImportReferences.excludePatterns": ["**/node_modules/**"]
-}
-```
-
-</details>
-
 ## 🛠️ Development & Contributing
 
 <details>
@@ -252,6 +237,8 @@ We welcome contributions! Here's how you can help:
 - Open a Pull Request
 
 </details>
+
+<br/>
 
 <table>
 <tr>
