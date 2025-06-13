@@ -3,7 +3,7 @@
   "displayName": "Dynamic Import References",
   "description": "Enhances VS Code's 'Find All References' feature by including dynamic and lazy imports in JavaScript and TypeScript files.",
   "publisher": "bubablue00",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "icon": "icon.png",
   "engines": {
     "vscode": "^1.97.0"
@@ -70,7 +70,7 @@
     "@types/for-each": "^0.3.3",
     "@types/jest": "^29.5.14",
     "@types/mocha": "^10.0.10",
-    "@types/node": "~22.13.4",
+    "@types/node": "~24.0.1",
     "@types/object-inspect": "^1.13.0",
     "@types/tape": "^5.8.1",
     "@types/vscode": "^1.97.0",
