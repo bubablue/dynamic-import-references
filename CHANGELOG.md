@@ -1,5 +1,13 @@
 # Changelog
 
+## [v0.1.4](https://github.com/bubablue/dynamic-import-references/tree/v0.1.4) (2025-06-13)
+
+[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v0.1.3...v0.1.4)
+
+**Merged pull requests:**
+
+- fix\(readme-md\): Update link icons [\#9](https://github.com/bubablue/dynamic-import-references/pull/9) ([bubablue](https://github.com/bubablue))
+
 ## [v0.1.3](https://github.com/bubablue/dynamic-import-references/tree/v0.1.3) (2025-06-12)
 
 [Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v0.1.2...v0.1.3)

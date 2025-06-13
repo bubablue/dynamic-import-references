@@ -134,7 +134,7 @@ Download the latest `.vsix` file from [releases](https://github.com/bubablue/dyn
 
 </div>
 
-### 🔍 Detection Examples
+### ✅ **Detection Examples**
 
 ```jsx
 // ✅ All of these patterns are detected:
