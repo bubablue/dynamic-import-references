@@ -1,5 +1,6 @@
 import * as fs from "fs/promises";
 import { ts_declare_regex } from "../regexp";
+import { log } from "../utils/logger";
 
 export async function extractComponentNames(
   filePath: string,
@@ -17,7 +18,7 @@ export async function extractComponentNames(
 
     return matches.length > 0 ? matches : [];
   } catch {
-    console.log(`Could not read file for component extraction: ${filePath}`);
+    log.debug(`Could not read file for component extraction: ${filePath}`);
     return [];
   }
 }

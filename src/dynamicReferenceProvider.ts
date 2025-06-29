@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 import { processFile } from "./helpers/code/process-file";
 import { findFile } from "./helpers/fs/find-file";
 import { loadTsConfig } from "./helpers/ts-config/load-ts-config";
+import { log } from "./helpers/utils/logger";
 
 const includedFiles = "**/*.{js,jsx,ts,tsx}";
 const excludedFiles = "**/{node_modules,dist,.next}/**";
@@ -50,7 +51,7 @@ export class DynamicReferenceProvider implements vscode.ReferenceProvider {
 
       return locations;
     } catch (error) {
-      console.error("Error in provideReferences:", error);
+      log.error("Error in provideReferences:", error);
       return [];
     }
   }
