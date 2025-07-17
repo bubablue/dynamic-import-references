@@ -1,6 +1,7 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import { ext_pattern_regex, extensions } from "../regexp";
+import { log } from "../utils/logger";
 
 export async function resolveImportPath(
   targetPath: string,
@@ -30,6 +31,6 @@ export async function resolveImportPath(
     }
   }
 
-  console.warn(`❌ Final resolution failed for: ${resolvedPath}`);
+  log.warn(`Final resolution failed for: ${resolvedPath}`);
   return [];
 }

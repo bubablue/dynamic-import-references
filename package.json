@@ -67,6 +67,9 @@
     "generate-changelog": "github_changelog_generator -u bubablue -p dynamic-import-references -t $GITHUB_TOKEN"
   },
   "devDependencies": {
+    "@babel/parser": "^7.27.7",
+    "@babel/traverse": "^7.27.7",
+    "@babel/types": "^7.27.7",
     "@types/for-each": "^0.3.3",
     "@types/jest": "^29.5.14",
     "@types/mocha": "^10.0.10",
