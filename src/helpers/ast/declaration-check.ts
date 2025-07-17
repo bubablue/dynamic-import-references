@@ -5,6 +5,7 @@ import { parseCodeToAST, traverse } from "./ast-utils";
 
 /**
  * Checks if a dynamic import declaration at a specific line should be included in the results
+ * If AST parsing fails, fall back to including if we have any bindings
  * @param fileContent - The content of the file to analyze
  * @param currentLine - The line number (0-based) to check
  * @param dynamicImportBindings - Map of dynamic import variable names to their bindings
@@ -35,7 +36,6 @@ export function shouldIncludeDeclaration(
     return foundDeclarations.length > 0;
   } catch (e) {
     log.warn("AST parsing failed while checking declaration location:", e);
-    // If AST parsing fails, fall back to including if we have any bindings
     return dynamicImportBindings.size > 0;
   }
 }

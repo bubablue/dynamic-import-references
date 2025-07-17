@@ -9,6 +9,14 @@ export interface TargetExportInfo {
   isNamed: boolean;
 }
 
+/**
+ * Analyzes a target file to determine the export types for a given search word.
+ * Parses the file using AST traversal to identify default and named exports.
+ * 
+ * @param documentPath - The absolute path to the target file to analyze
+ * @param searchWord - The identifier name to search for in the exports
+ * @returns Promise that resolves to TargetExportInfo containing export information
+ */
 export async function analyzeTargetFileExports(
   documentPath: string,
   searchWord: string
@@ -55,7 +63,14 @@ export async function analyzeTargetFileExports(
   }
 }
 
-// Check variable declarations in named exports
+/**
+ * Checks if a variable declaration contains the specified search word.
+ * Iterates through variable declarators to find matching identifier names.
+ * 
+ * @param declaration - The variable declaration node to check
+ * @param searchWord - The identifier name to search for
+ * @returns True if the search word is found in the variable declaration
+ */
 function checkVariableDeclaration(
   declaration: t.VariableDeclaration,
   searchWord: string
@@ -68,7 +83,14 @@ function checkVariableDeclaration(
   return false;
 }
 
-// Check function declarations in named exports
+/**
+ * Checks if a function declaration matches the specified search word.
+ * Validates that the function has an identifier and its name matches the search word.
+ * 
+ * @param declaration - The function declaration node to check
+ * @param searchWord - The identifier name to search for
+ * @returns True if the function declaration name matches the search word
+ */
 function checkFunctionDeclaration(
   declaration: t.FunctionDeclaration,
   searchWord: string
@@ -76,7 +98,14 @@ function checkFunctionDeclaration(
   return t.isIdentifier(declaration.id) && declaration.id.name === searchWord;
 }
 
-// Check export specifiers in named exports
+/**
+ * Checks if any export specifier in the array matches the specified search word.
+ * Iterates through export specifiers to find matching exported identifier names.
+ * 
+ * @param specifiers - Array of export specifiers to check
+ * @param searchWord - The identifier name to search for
+ * @returns True if any export specifier matches the search word
+ */
 function checkExportSpecifiers(
   specifiers: t.ExportSpecifier[],
   searchWord: string
@@ -93,7 +122,14 @@ function checkExportSpecifiers(
   return false;
 }
 
-// Main check named export declarations
+/**
+ * Main function to check named export declarations for the specified search word.
+ * Handles both direct declarations (variables, functions) and re-exports.
+ * 
+ * @param node - The export named declaration node to analyze
+ * @param searchWord - The identifier name to search for
+ * @returns True if the search word is found in the named export declaration
+ */
 function checkNamedExportDeclaration(
   node: t.ExportNamedDeclaration,
   searchWord: string
@@ -111,7 +147,6 @@ function checkNamedExportDeclaration(
     }
   }
 
-  // Check re-exports: export { ComponentName }
   if (node.specifiers) {
     if (
       checkExportSpecifiers(node.specifiers as t.ExportSpecifier[], searchWord)

@@ -16,6 +16,8 @@ export interface DynamicImportAnalysisResult {
 
 /**
  * Analyzes a file's content to find dynamic import references and their locations
+ * First pass: Collect dynamic import variable bindings
+ * Second pass: Find identifier references
  * @param fileContent - The content of the file to analyze
  * @param file - The file URI for creating locations
  * @param names - Array of variable names to track (from findImportRefNames)
@@ -32,7 +34,6 @@ export function analyzeDynamicImports(
   try {
     const ast = parseCodeToAST(fileContent);
 
-    // First pass: Collect dynamic import variable bindings
     traverse(ast, {
       VariableDeclarator(path) {
         const init = path.node.init;
@@ -56,7 +57,6 @@ export function analyzeDynamicImports(
       },
     });
 
-    // Second pass: Find identifier references
     traverse(ast, {
       Identifier(path) {
         if (shouldIncludeIdentifierReference(path, dynamicImportBindings)) {

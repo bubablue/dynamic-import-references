@@ -1,7 +1,12 @@
 import { Binding, NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
 
-// Check if a direct call is a dynamic/lazy import
+/**
+ * Check if a direct call is a dynamic/lazy import
+ * @param callee - The AST node representing the callee expression
+ * @param path - The babel traverse path for the variable declarator
+ * @returns True if the callee is a dynamic/lazy import, false otherwise
+ */
 export function isDirectDynamicImport(
   callee: t.Node,
   path: NodePath<t.VariableDeclarator>
@@ -10,12 +15,10 @@ export function isDirectDynamicImport(
     return false;
   }
 
-  // Check for direct calls: dynamic(), lazy()
   if (callee.name === "dynamic" || callee.name === "lazy") {
     return true;
   }
 
-  // Check if it's an aliased import (like 'l' for lazy)
   const binding = path.scope.getBinding(callee.name);
   if (binding?.path?.isImportSpecifier?.()) {
     const importSpecifier = binding.path.node;
@@ -43,7 +46,12 @@ export function isDirectDynamicImport(
   return false;
 }
 
-// Check if a member expression is a dynamic/lazy import
+/**
+ * Check if a member expression is a dynamic/lazy import
+ * @param callee - The AST node representing the callee expression
+ * @param path - The babel traverse path for the variable declarator
+ * @returns True if the member expression is a dynamic/lazy import, false otherwise
+ */
 export function isMemberExpressionDynamicImport(
   callee: t.Node,
   path: NodePath<t.VariableDeclarator>
@@ -61,13 +69,11 @@ export function isMemberExpressionDynamicImport(
     return false;
   }
 
-  // Check if the object is imported from react or next/dynamic
   if (t.isIdentifier(callee.object)) {
     const objectBinding = path.scope.getBinding(callee.object.name);
     if (objectBinding?.path) {
       const importDecl = objectBinding.path.parent;
 
-      // Break down the complex condition into readable parts
       const isValidImportDecl = t.isImportDeclaration(importDecl);
       const hasSource = isValidImportDecl && importDecl.source;
 
@@ -85,7 +91,11 @@ export function isMemberExpressionDynamicImport(
   return false;
 }
 
-// Extract import path from arrow function body
+/**
+ * Extract import path from arrow function body
+ * @param arrowFunc - The arrow function expression to analyze
+ * @returns The import path as a string, or null if not found
+ */
 export function extractImportPathFromArrowFunction(
   arrowFunc: t.ArrowFunctionExpression
 ): string | null {
@@ -95,7 +105,6 @@ export function extractImportPathFromArrowFunction(
 
   let importCall: t.Node = arrowFunc.body;
 
-  // Handle block statement: () => { return import('...') }
   if (t.isBlockStatement(importCall) && importCall.body.length > 0) {
     const returnStatement = importCall.body.find((stmt: t.Statement) =>
       t.isReturnStatement(stmt)
@@ -109,7 +118,6 @@ export function extractImportPathFromArrowFunction(
     }
   }
 
-  // Check if it's an import() call
   if (!t.isCallExpression(importCall)) {
     return null;
   }
@@ -117,7 +125,6 @@ export function extractImportPathFromArrowFunction(
   const hasArguments = importCall.arguments && importCall.arguments.length > 0;
 
   if (hasArguments) {
-    // Check for different representations of dynamic import
     const isImportCall =
       t.isImport(importCall.callee) || // Standard representation
       (t.isIdentifier(importCall.callee) &&
@@ -134,7 +141,94 @@ export function extractImportPathFromArrowFunction(
   return null;
 }
 
-// Check if a dynamic import's path matches the target import path
+/**
+ * Extract import path from function expression body
+ * @param funcExpr - The function expression to analyze
+ * @returns The import path as a string, or null if not found
+ */
+export function extractImportPathFromFunctionExpression(
+  funcExpr: t.FunctionExpression
+): string | null {
+  if (!funcExpr.body || !t.isBlockStatement(funcExpr.body)) {
+    return null;
+  }
+
+  const returnStatement = funcExpr.body.body.find((stmt: t.Statement) =>
+    t.isReturnStatement(stmt)
+  );
+
+  if (
+    !returnStatement ||
+    !t.isReturnStatement(returnStatement) ||
+    !returnStatement.argument
+  ) {
+    return null;
+  }
+
+  const importCall = returnStatement.argument;
+
+  if (!t.isCallExpression(importCall)) {
+    return null;
+  }
+
+  const hasArguments = importCall.arguments && importCall.arguments.length > 0;
+
+  if (hasArguments) {
+    const isImportCall =
+      t.isImport(importCall.callee) || // Standard representation
+      (t.isIdentifier(importCall.callee) &&
+        importCall.callee.name === "import"); // Alternative representation
+
+    if (isImportCall) {
+      const importPath = importCall.arguments[0];
+      if (t.isStringLiteral(importPath)) {
+        return importPath.value;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Helper function to check if import path matches target path
+ * @param importPath - The extracted import path
+ * @param targetImportPath - The target import path to match against
+ * @param resolve - Function to resolve relative paths
+ * @param specificComponentName - Optional specific component name to look for
+ * @returns True if the import path matches the target path, false otherwise
+ */
+const checkImportPathMatch = (
+  importPath: string,
+  targetImportPath: string,
+  resolve: (path: string) => string,
+  specificComponentName?: string | null
+): boolean => {
+  const resolvedExtractedPath = resolve(importPath);
+  const pathsMatch = resolvedExtractedPath === targetImportPath;
+
+  if (pathsMatch && specificComponentName) {
+    // If we're looking for a specific component, we should check if this dynamic import
+    // is actually being used to import that specific component
+    // This is a more complex analysis that would require looking at how the variable is used
+    // For now, we'll use a simple heuristic: if the dynamic import is to the same file,
+    // but we're looking for a specific component, we need to be more careful
+    // This is where we would need more sophisticated analysis
+    // For now, we'll assume the dynamic import is valid if paths match
+    return true;
+  }
+
+  return pathsMatch;
+};
+
+/**
+ * Check if a dynamic import's path matches the target import path
+ * @param callExpression - The call expression to check
+ * @param targetImportPath - The target import path to match against
+ * @param resolve - Function to resolve relative paths
+ * @param specificComponentName - Optional specific component name to look for
+ * @returns True if the dynamic import matches the target path, false otherwise
+ */
 export function doesDynamicImportMatch(
   callExpression: t.CallExpression,
   targetImportPath: string,
@@ -147,43 +241,43 @@ export function doesDynamicImportMatch(
 
   const firstArg = callExpression.arguments[0];
 
-  // Handle arrow function: () => import('...')
   if (t.isArrowFunctionExpression(firstArg)) {
     const importPath = extractImportPathFromArrowFunction(firstArg);
-
     if (importPath) {
-      const resolvedExtractedPath = resolve(importPath);
-      const pathsMatch = resolvedExtractedPath === targetImportPath;
-
-      if (pathsMatch && specificComponentName) {
-        // If we're looking for a specific component, we should check if this dynamic import
-        // is actually being used to import that specific component
-        // This is a more complex analysis that would require looking at how the variable is used
-        // For now, we'll use a simple heuristic: if the dynamic import is to the same file,
-        // but we're looking for a specific component, we need to be more careful
-        // This is where we would need more sophisticated analysis
-        // For now, we'll assume the dynamic import is valid if paths match
-        return true;
-      }
-
-      return pathsMatch;
+      return checkImportPathMatch(
+        importPath,
+        targetImportPath,
+        resolve,
+        specificComponentName
+      );
     }
   }
 
-  // Handle function expression: function() { return import('...') }
   if (t.isFunctionExpression(firstArg) && firstArg.body) {
-    // Similar logic can be added here if needed
+    const importPath = extractImportPathFromFunctionExpression(firstArg);
+    if (importPath) {
+      return checkImportPathMatch(
+        importPath,
+        targetImportPath,
+        resolve,
+        specificComponentName
+      );
+    }
   }
 
   return false;
 }
 
-// Check if an identifier reference should be included
+/**
+ * Check if an identifier reference should be included
+ * @param path - The babel traverse path for the identifier
+ * @param dynamicImportBindings - Map of dynamic import bindings
+ * @returns True if the identifier reference should be included, false otherwise
+ */
 export function shouldIncludeIdentifierReference(
   path: NodePath<t.Identifier>,
   dynamicImportBindings: Map<string, Binding>
 ): boolean {
-  // Only match if this identifier's binding is a dynamic/lazy import binding
   const currentBinding = path.scope.getBinding(path.node.name);
   const originalDynamicBinding = dynamicImportBindings.get(path.node.name);
 
@@ -191,7 +285,6 @@ export function shouldIncludeIdentifierReference(
     return false;
   }
 
-  // Ignore property accesses: obj.prop (where prop is the identifier)
   if (
     t.isMemberExpression(path.parent) &&
     path.parent.property === path.node &&
@@ -200,7 +293,6 @@ export function shouldIncludeIdentifierReference(
     return false;
   }
 
-  // Ignore property keys in object literals: { MobileCheckBet: 'value' }
   if (
     t.isObjectProperty(path.parent) &&
     path.parent.key === path.node &&
@@ -209,7 +301,6 @@ export function shouldIncludeIdentifierReference(
     return false;
   }
 
-  // Ignore the declaration itself
   if (currentBinding && currentBinding.identifier === path.node) {
     return false;
   }
