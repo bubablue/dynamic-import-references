@@ -1,23 +1,24 @@
+import { ParseResult } from "@babel/parser";
 import { Binding } from "@babel/traverse";
 import * as t from "@babel/types";
 import { log } from "../utils/logger";
-import { parseCodeToAST, traverse } from "./ast-utils";
+import { traverse } from "./ast-utils";
 
 /**
  * Checks if a dynamic import declaration at a specific line should be included in the results
- * If AST parsing fails, fall back to including if we have any bindings
- * @param fileContent - The content of the file to analyze
+ * Uses AST traversal to find variable declarations that match dynamic import bindings
+ * If AST traversal fails, fall back to including if we have any bindings
+ * @param ast - The parsed AST of the file to analyze
  * @param currentLine - The line number (0-based) to check
  * @param dynamicImportBindings - Map of dynamic import variable names to their bindings
  * @returns true if the declaration at the current line should be included
  */
 export function shouldIncludeDeclaration(
-  fileContent: string,
+  ast: ParseResult<t.File>,
   currentLine: number,
   dynamicImportBindings: Map<string, Binding>
 ): boolean {
   try {
-    const ast = parseCodeToAST(fileContent);
     const foundDeclarations: string[] = [];
 
     traverse(ast, {

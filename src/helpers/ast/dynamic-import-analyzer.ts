@@ -1,39 +1,41 @@
+import { ParseResult } from "@babel/parser";
 import { Binding } from "@babel/traverse";
 import * as t from "@babel/types";
 import * as vscode from "vscode";
-import { parseCodeToAST, traverse } from "../ast/ast-utils";
+import { traverse } from "../ast/ast-utils";
 import {
   isDirectDynamicImport,
   isMemberExpressionDynamicImport,
   shouldIncludeIdentifierReference,
 } from "../ast/dynamic-import-detection";
 import { log } from "../utils/logger";
+import { shouldIncludeDeclaration } from "./declaration-check";
 
 export interface DynamicImportAnalysisResult {
   locations: vscode.Location[];
-  dynamicImportBindings: Map<string, Binding>;
+  shouldIncludeCurrentImportDeclaration: boolean;
 }
 
 /**
- * Analyzes a file's content to find dynamic import references and their locations
- * First pass: Collect dynamic import variable bindings
- * Second pass: Find identifier references
- * @param fileContent - The content of the file to analyze
+ * Analyzes a file's AST to find dynamic import references and their locations
+ * First pass: Collect dynamic import variable bindings from variable declarations
+ * Second pass: Find identifier references that match the tracked bindings
  * @param file - The file URI for creating locations
  * @param names - Array of variable names to track (from findImportRefNames)
+ * @param currentLine - The line number (0-based) to check for current import declaration
+ * @param ast - The parsed AST of the file to analyze
  * @returns Analysis result with locations and bindings
  */
 export function analyzeDynamicImports(
-  fileContent: string,
   file: vscode.Uri,
-  names: string[]
+  names: string[],
+  currentLine: number,
+  ast: ParseResult<t.File>
 ): DynamicImportAnalysisResult {
   const locations: vscode.Location[] = [];
   const dynamicImportBindings = new Map<string, Binding>();
 
   try {
-    const ast = parseCodeToAST(fileContent);
-
     traverse(ast, {
       VariableDeclarator(path) {
         const init = path.node.init;
@@ -73,8 +75,14 @@ export function analyzeDynamicImports(
     log.warn("AST parsing failed in analyzeDynamicImports:", e);
   }
 
+  const shouldIncludeCurrentImportDeclaration = shouldIncludeDeclaration(
+    ast,
+    currentLine,
+    dynamicImportBindings
+  );
+
   return {
     locations,
-    dynamicImportBindings,
+    shouldIncludeCurrentImportDeclaration,
   };
 }

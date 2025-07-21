@@ -1,7 +1,8 @@
+import { ParseResult } from "@babel/parser";
 import * as t from "@babel/types";
 import * as vscode from "vscode";
 import { TargetExportInfo } from "../ast/analyze-target-exports";
-import { parseCodeToAST, traverse } from "../ast/ast-utils";
+import { traverse } from "../ast/ast-utils";
 import {
   doesDynamicImportMatch,
   isDirectDynamicImport,
@@ -17,6 +18,7 @@ interface FindImportRefNamesParams {
   tsConfigDir?: string;
   hasAlias: boolean;
   exportInfo: TargetExportInfo;
+  ast: ParseResult<t.File>;
 }
 
 // Check if a function argument accesses named exports
@@ -33,13 +35,11 @@ function checkFunctionArgumentForNamedExport(arg: t.Node): boolean {
     t.isIdentifier(body.property) &&
     body.property.name !== "default"
   ) {
-    log.debug("Found named export access:", body.property.name);
     return true;
   }
 
   // Check if the body is a call expression that might contain the pattern
   if (t.isCallExpression(body)) {
-    log.debug("Function body is call expression, checking recursively");
     return checkForNamedExportAccess(body);
   }
 
@@ -52,9 +52,7 @@ function checkMemberExpressionCallee(node: t.CallExpression): boolean {
     return false;
   }
 
-  log.debug("Callee is member expression:", node.callee.property);
   if (t.isCallExpression(node.callee.object)) {
-    log.debug("Callee object is call expression, checking recursively");
     return checkForNamedExportAccess(node.callee.object);
   }
 
@@ -86,19 +84,13 @@ export async function findImportRefNames({
   tsConfigDir,
   hasAlias,
   exportInfo,
+  ast,
 }: FindImportRefNamesParams): Promise<string[]> {
   try {
-    const fileContent = new TextDecoder().decode(
-      await vscode.workspace.fs.readFile(fileUri)
-    );
-
     const resolve = (path: string) =>
       !!aliases && !!tsConfigDir && !!hasAlias
         ? resolveAlias(path, aliases, tsConfigDir)
         : path;
-
-    log.debug("Resolving path:", importedPath);
-    log.debug("Looking for export:", exportInfo);
 
     // If we're looking for a specific component, first check what that component is
     // in the target file (default export vs named export) - this is now provided
@@ -106,15 +98,7 @@ export async function findImportRefNames({
     const isNamedExport = exportInfo.isNamed;
     const componentName = exportInfo.name;
 
-    log.debug("Component is default export:", isDefaultExport);
-    log.debug("Component is named export:", isNamedExport);
-
     const names: string[] = [];
-
-    // AST-based detection for dynamic imports
-    const ast = parseCodeToAST(fileContent);
-
-    // Track dynamic import variables and their import paths
     const dynamicImportVars = new Map<string, string>(); // variable name -> import path
 
     // First pass: find all dynamic import variables
@@ -127,7 +111,6 @@ export async function findImportRefNames({
             isMemberExpressionDynamicImport(init.callee, path);
 
           if (isDynamicImport) {
-            // Check if this dynamic import's path matches the target import path
             const pathMatches = doesDynamicImportMatch(
               init,
               importedPath,
@@ -135,10 +118,6 @@ export async function findImportRefNames({
               componentName
             );
             if (pathMatches) {
-              log.debug(
-                "Found matching dynamic import variable:",
-                path.node.id.name
-              );
               dynamicImportVars.set(path.node.id.name, importedPath);
             }
           }
@@ -150,8 +129,6 @@ export async function findImportRefNames({
     if (isDefaultExport && !isNamedExport) {
       // For default exports: the dynamic import variable IS the reference to the default export
       // BUT exclude if the dynamic import specifically accesses a named export
-      log.debug("Looking for default export references");
-
       for (const [varName] of dynamicImportVars) {
         // Check if this dynamic import specifically accesses a named export
         let accessesSpecificNamedExport = false;
@@ -166,11 +143,6 @@ export async function findImportRefNames({
                 // This handles cases like: lazy(() => import('./module').then(m => m.NamedExport))
                 const hasNamedExportAccess = checkForNamedExportAccess(init);
                 if (hasNamedExportAccess) {
-                  log.debug(
-                    "Excluding",
-                    varName,
-                    "because it accesses a named export"
-                  );
                   accessesSpecificNamedExport = true;
                 }
               }
@@ -179,14 +151,11 @@ export async function findImportRefNames({
         });
 
         if (!accessesSpecificNamedExport) {
-          log.debug("Including default export variable:", varName);
           names.push(varName);
         }
       }
     } else if (isNamedExport && !isDefaultExport) {
       // For named exports: look for property access to the specific named export
-      log.debug("Looking for named export references");
-
       // Add direct references to the component name if they exist
       traverse(ast, {
         Identifier(path) {
@@ -197,9 +166,6 @@ export async function findImportRefNames({
             !t.isImportSpecifier(path.parent) && // Not an import
             !t.isExportSpecifier(path.parent)
           ) {
-            // Not an export
-
-            log.debug("Found direct reference to named export:", componentName);
             if (!names.includes(componentName)) {
               names.push(componentName);
             }
@@ -214,11 +180,6 @@ export async function findImportRefNames({
             path.node.property.name === componentName &&
             dynamicImportVars.has(path.node.object.name)
           ) {
-            log.debug(
-              "Found named export via member expression:",
-              `${path.node.object.name}.${componentName}`
-            );
-
             // For named exports accessed via member expression,
             // we track the component name as the reference target
             if (!names.includes(componentName)) {
@@ -229,7 +190,6 @@ export async function findImportRefNames({
       });
     } else if (isDefaultExport && isNamedExport) {
       // Component is both: include the dynamic import variable
-      log.debug("Component is both default and named export");
       for (const [varName] of dynamicImportVars) {
         names.push(varName);
       }

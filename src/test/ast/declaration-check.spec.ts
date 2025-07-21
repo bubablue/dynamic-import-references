@@ -1,11 +1,10 @@
 import { Binding } from "@babel/traverse";
-import { shouldIncludeDeclaration } from "../../helpers/ast/declaration-check";
-import { parseCodeToAST, traverse } from "../../helpers/ast/ast-utils";
 import * as t from "@babel/types";
+import { traverse } from "../../helpers/ast/ast-utils";
+import { shouldIncludeDeclaration } from "../../helpers/ast/declaration-check";
 import { log } from "../../helpers/utils/logger";
 
 jest.mock("../../helpers/ast/ast-utils", () => ({
-  parseCodeToAST: jest.fn(),
   traverse: jest.fn(),
 }));
 
@@ -20,26 +19,22 @@ jest.mock("../../helpers/utils/logger", () => ({
 }));
 
 describe("declaration-check", () => {
-  const mockParseCodeToAST = parseCodeToAST as jest.MockedFunction<typeof parseCodeToAST>;
   const mockTraverse = traverse as jest.MockedFunction<typeof traverse>;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (t.isIdentifier as jest.MockedFunction<typeof t.isIdentifier>).mockReturnValue(true);
+    (
+      t.isIdentifier as jest.MockedFunction<typeof t.isIdentifier>
+    ).mockReturnValue(true);
   });
 
   describe("shouldIncludeDeclaration", () => {
     it("should return true when declaration is found at the specified line", () => {
-      const fileContent = `
-        import dynamic from 'next/dynamic';
-        const MyComponent = dynamic(() => import('./Component'));
-        const OtherComponent = () => <div>Other</div>;
-      `;
+      const mockAst = {} as any;
 
       const mockBindings = new Map<string, Binding>();
       mockBindings.set("MyComponent", {} as Binding);
 
-      mockParseCodeToAST.mockReturnValue({} as any);
       mockTraverse.mockImplementation((_ast: any, visitor: any) => {
         const mockPath = {
           node: {
@@ -54,21 +49,16 @@ describe("declaration-check", () => {
         visitor.VariableDeclarator(mockPath);
       });
 
-      const result = shouldIncludeDeclaration(fileContent, 2, mockBindings);
+      const result = shouldIncludeDeclaration(mockAst, 2, mockBindings);
       expect(result).toBe(true);
     });
 
     it("should return false when declaration is not found at the specified line", () => {
-      const fileContent = `
-        import dynamic from 'next/dynamic';
-        const MyComponent = dynamic(() => import('./Component'));
-        const OtherComponent = () => <div>Other</div>;
-      `;
+      const mockAst = {} as any;
 
       const mockBindings = new Map<string, Binding>();
       mockBindings.set("MyComponent", {} as Binding);
 
-      mockParseCodeToAST.mockReturnValue({} as any);
       mockTraverse.mockImplementation((_ast: any, visitor: any) => {
         const mockPath = {
           node: {
@@ -83,21 +73,16 @@ describe("declaration-check", () => {
         visitor.VariableDeclarator(mockPath);
       });
 
-      const result = shouldIncludeDeclaration(fileContent, 2, mockBindings);
+      const result = shouldIncludeDeclaration(mockAst, 2, mockBindings);
       expect(result).toBe(false);
     });
 
     it("should return false when variable name is not in bindings", () => {
-      const fileContent = `
-        import dynamic from 'next/dynamic';
-        const MyComponent = dynamic(() => import('./Component'));
-        const OtherComponent = () => <div>Other</div>;
-      `;
+      const mockAst = {} as any;
 
       const mockBindings = new Map<string, Binding>();
       mockBindings.set("DifferentComponent", {} as Binding);
 
-      mockParseCodeToAST.mockReturnValue({} as any);
       mockTraverse.mockImplementation((_ast: any, visitor: any) => {
         const mockPath = {
           node: {
@@ -112,19 +97,16 @@ describe("declaration-check", () => {
         visitor.VariableDeclarator(mockPath);
       });
 
-      const result = shouldIncludeDeclaration(fileContent, 2, mockBindings);
+      const result = shouldIncludeDeclaration(mockAst, 2, mockBindings);
       expect(result).toBe(false);
     });
 
     it("should return false when no location info is available", () => {
-      const fileContent = `
-        const MyComponent = dynamic(() => import('./Component'));
-      `;
+      const mockAst = {} as any;
 
       const mockBindings = new Map<string, Binding>();
       mockBindings.set("MyComponent", {} as Binding);
 
-      mockParseCodeToAST.mockReturnValue({} as any);
       mockTraverse.mockImplementation((_ast: any, visitor: any) => {
         const mockPath = {
           node: {
@@ -137,20 +119,17 @@ describe("declaration-check", () => {
         visitor.VariableDeclarator(mockPath);
       });
 
-      const result = shouldIncludeDeclaration(fileContent, 0, mockBindings);
+      const result = shouldIncludeDeclaration(mockAst, 0, mockBindings);
       expect(result).toBe(false);
     });
 
     it("should return true when multiple declarations are found at the same line", () => {
-      const fileContent = `
-        const MyComponent = dynamic(() => import('./Component')), OtherComponent = dynamic(() => import('./Other'));
-      `;
+      const mockAst = {} as any;
 
       const mockBindings = new Map<string, Binding>();
       mockBindings.set("MyComponent", {} as Binding);
       mockBindings.set("OtherComponent", {} as Binding);
 
-      mockParseCodeToAST.mockReturnValue({} as any);
       mockTraverse.mockImplementation((_ast: any, visitor: any) => {
         const mockPath1 = {
           node: {
@@ -176,21 +155,21 @@ describe("declaration-check", () => {
         visitor.VariableDeclarator(mockPath2);
       });
 
-      const result = shouldIncludeDeclaration(fileContent, 1, mockBindings);
+      const result = shouldIncludeDeclaration(mockAst, 1, mockBindings);
       expect(result).toBe(true);
     });
 
-    it("should fallback to checking bindings size when AST parsing fails", () => {
-      const fileContent = "invalid syntax {{{";
+    it("should fallback to checking bindings size when AST traversal fails", () => {
+      const mockAst = {} as any;
       const mockBindings = new Map<string, Binding>();
       mockBindings.set("MyComponent", {} as Binding);
 
-      mockParseCodeToAST.mockImplementation(() => {
-        throw new Error("Parsing failed");
+      mockTraverse.mockImplementation(() => {
+        throw new Error("Traversal failed");
       });
 
-      const result = shouldIncludeDeclaration(fileContent, 0, mockBindings);
-      
+      const result = shouldIncludeDeclaration(mockAst, 0, mockBindings);
+
       expect(result).toBe(true);
       expect(log.warn).toHaveBeenCalledWith(
         "AST parsing failed while checking declaration location:",
@@ -198,16 +177,16 @@ describe("declaration-check", () => {
       );
     });
 
-    it("should return false when AST parsing fails and no bindings exist", () => {
-      const fileContent = "invalid syntax {{{";
+    it("should return false when AST traversal fails and no bindings exist", () => {
+      const mockAst = {} as any;
       const mockBindings = new Map<string, Binding>();
 
-      mockParseCodeToAST.mockImplementation(() => {
-        throw new Error("Parsing failed");
+      mockTraverse.mockImplementation(() => {
+        throw new Error("Traversal failed");
       });
 
-      const result = shouldIncludeDeclaration(fileContent, 0, mockBindings);
-      
+      const result = shouldIncludeDeclaration(mockAst, 0, mockBindings);
+
       expect(result).toBe(false);
       expect(log.warn).toHaveBeenCalledWith(
         "AST parsing failed while checking declaration location:",

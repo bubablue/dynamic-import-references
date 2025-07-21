@@ -1,7 +1,7 @@
 import * as path from "path";
 import * as vscode from "vscode";
 import { analyzeTargetFileExports } from "../ast/analyze-target-exports";
-import { shouldIncludeDeclaration } from "../ast/declaration-check";
+import { parseCodeToAST } from "../ast/ast-utils";
 import { analyzeDynamicImports } from "../ast/dynamic-import-analyzer";
 import { isIncluded } from "../fs/is-path-included";
 import { findImportRefNames } from "../resolver/find-import-references-names";
@@ -48,6 +48,11 @@ export async function getMatchingLocations({
 
     const targetExportInfo = await analyzeTargetFileExports(documentPath, word);
 
+    const fileContent = new TextDecoder().decode(
+      await vscode.workspace.fs.readFile(file)
+    );
+    const ast = parseCodeToAST(fileContent);
+
     const names = await findImportRefNames({
       fileUri: file,
       importedPath,
@@ -55,26 +60,14 @@ export async function getMatchingLocations({
       tsConfigDir,
       hasAlias,
       exportInfo: targetExportInfo,
+      ast,
     });
-
-    const fileContent = new TextDecoder().decode(
-      await vscode.workspace.fs.readFile(file)
-    );
-
-    const { locations, dynamicImportBindings } = analyzeDynamicImports(
-      fileContent,
-      file,
-      names
-    );
 
     const textLines = text.slice(0, matchIndex).split("\n");
     const currentLine = textLines.length - 1;
 
-    const shouldIncludeCurrentImportDeclaration = shouldIncludeDeclaration(
-      fileContent,
-      currentLine,
-      dynamicImportBindings
-    );
+    const { locations, shouldIncludeCurrentImportDeclaration } =
+      analyzeDynamicImports(file, names, currentLine, ast);
 
     if (shouldIncludeCurrentImportDeclaration) {
       locations.push(
