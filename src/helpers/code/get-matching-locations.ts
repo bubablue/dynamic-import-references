@@ -1,8 +1,10 @@
 import * as path from "path";
 import * as vscode from "vscode";
+import { analyzeTargetFileExports } from "../ast/analyze-target-exports";
+import { parseCodeToAST } from "../ast/ast-utils";
+import { analyzeDynamicImports } from "../ast/dynamic-import-analyzer";
 import { isIncluded } from "../fs/is-path-included";
 import { findImportRefNames } from "../resolver/find-import-references-names";
-import { findLineAndCharPosition } from "../resolver/find-match-file-line";
 
 interface MatchingLocationParams {
   file: vscode.Uri;
@@ -37,11 +39,19 @@ export async function getMatchingLocations({
 
   const nameEqual = normFileName === normWord;
   const componentEqual = normComponentName === normWord;
+  const shouldSearch = nameEqual || componentEqual;
 
-  if ((nameEqual || componentEqual) && isIncluded(importedPath, documentPath)) {
+  if (shouldSearch && isIncluded(importedPath, documentPath)) {
     const lines = text.slice(0, matchIndex).split("\n");
     const line = lines.length - 1;
     const char = matchIndex - text.lastIndexOf("\n", matchIndex - 1) - 1;
+
+    const targetExportInfo = await analyzeTargetFileExports(documentPath, word);
+
+    const fileContent = new TextDecoder().decode(
+      await vscode.workspace.fs.readFile(file)
+    );
+    const ast = parseCodeToAST(fileContent);
 
     const names = await findImportRefNames({
       fileUri: file,
@@ -49,21 +59,27 @@ export async function getMatchingLocations({
       aliases,
       tsConfigDir,
       hasAlias,
+      exportInfo: targetExportInfo,
+      ast,
     });
 
-    const locations = names.flatMap((name) => {
-      const regexp = new RegExp(`\\b${name}\\b`, "g");
+    const textLines = text.slice(0, matchIndex).split("\n");
+    const currentLine = textLines.length - 1;
 
-      return [...text.matchAll(regexp)].map((match) => {
-        const index = match.index ?? 0;
-        const { line, char } = findLineAndCharPosition(text, index);
-        return new vscode.Location(file, new vscode.Position(line, char));
-      });
-    });
+    const { locations, shouldIncludeCurrentImportDeclaration } =
+      analyzeDynamicImports(file, names, currentLine, ast);
 
-    return locations?.length
-      ? [...locations]
-      : [new vscode.Location(file, new vscode.Position(line, char))];
+    if (shouldIncludeCurrentImportDeclaration) {
+      locations.push(
+        new vscode.Location(file, new vscode.Position(line, char))
+      );
+    }
+
+    if (locations.length) {
+      return locations;
+    }
+
+    return locations;
   }
 
   return [];

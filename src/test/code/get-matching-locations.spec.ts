@@ -1,24 +1,41 @@
 import * as vscode from "vscode";
+import { analyzeTargetFileExports } from "../../helpers/ast/analyze-target-exports";
+import { parseCodeToAST } from "../../helpers/ast/ast-utils";
+import { analyzeDynamicImports } from "../../helpers/ast/dynamic-import-analyzer";
 import { getMatchingLocations } from "../../helpers/code/get-matching-locations";
 import { isIncluded } from "../../helpers/fs/is-path-included";
 import { findImportRefNames } from "../../helpers/resolver/find-import-references-names";
-import { findLineAndCharPosition } from "../../helpers/resolver/find-match-file-line";
 
 jest.mock("../../helpers/fs/is-path-included");
 jest.mock("../../helpers/resolver/find-import-references-names");
-jest.mock("../../helpers/resolver/find-match-file-line");
+jest.mock("../../helpers/ast/analyze-target-exports");
+jest.mock("../../helpers/ast/dynamic-import-analyzer");
+jest.mock("../../helpers/ast/ast-utils");
 
-// If you need to mock vscode Uri and friends, you can do so like this:
-// (often not strictly necessary, but you may want to do it for consistency)
 jest.mock("vscode", () => {
-  const actualVscode = jest.requireActual("vscode");
   return {
-    ...actualVscode,
+    workspace: {
+      fs: {
+        readFile: jest.fn(),
+      },
+    },
     Uri: {
       file: (filePath: string) => ({ fsPath: filePath }),
     },
-    Position: actualVscode.Position,
-    Location: actualVscode.Location,
+    Position: jest.fn().mockImplementation((line, character) => ({
+      line,
+      character,
+    })),
+    Location: jest.fn().mockImplementation((uri, rangeOrPosition) => {
+      const range =
+        rangeOrPosition.line !== undefined
+          ? { start: rangeOrPosition, end: rangeOrPosition }
+          : rangeOrPosition;
+      return {
+        uri,
+        range,
+      };
+    }),
   };
 });
 
@@ -27,12 +44,19 @@ describe("getMatchingLocations", () => {
   const mockedFindImportRefNames = findImportRefNames as jest.MockedFunction<
     typeof findImportRefNames
   >;
-  const mockedFindLineAndCharPosition =
-    findLineAndCharPosition as jest.MockedFunction<
-      typeof findLineAndCharPosition
+  const mockedReadFile = vscode.workspace.fs.readFile as jest.MockedFunction<
+    typeof vscode.workspace.fs.readFile
+  >;
+  const mockedAnalyzeTargetFileExports =
+    analyzeTargetFileExports as jest.MockedFunction<
+      typeof analyzeTargetFileExports
     >;
+  const mockedAnalyzeDynamicImports =
+    analyzeDynamicImports as jest.MockedFunction<typeof analyzeDynamicImports>;
+  const mockedParseCodeToAST = parseCodeToAST as jest.MockedFunction<
+    typeof parseCodeToAST
+  >;
 
-  // We'll reuse this as a "fake" uri
   const fileUri = vscode.Uri.file("/path/to/file.ts");
 
   beforeEach(() => {
@@ -86,13 +110,22 @@ describe("getMatchingLocations", () => {
     // Suppose we do match, isIncluded => true, but findImportRefNames => []
     mockedIsIncluded.mockReturnValue(true);
     mockedFindImportRefNames.mockResolvedValue([]); // no named references
-    // The fallback location is derived from line/char around matchIndex
-
-    // Let's say findLineAndCharPosition returns line=2, char=5 for fallback
-    mockedFindLineAndCharPosition.mockReturnValue({ line: 2, char: 5 });
+    mockedAnalyzeTargetFileExports.mockResolvedValue({
+      name: "somecomponent",
+      isDefault: true,
+      isNamed: false,
+    });
+    mockedParseCodeToAST.mockReturnValue({} as any);
+    mockedAnalyzeDynamicImports.mockReturnValue({
+      locations: [],
+      shouldIncludeCurrentImportDeclaration: true,
+    });
 
     const text = `some dynamic import here...`;
     const matchIndex = 10;
+
+    // Mock the readFile to return the text as a Buffer
+    mockedReadFile.mockResolvedValue(Buffer.from(text));
 
     const result = await getMatchingLocations({
       file: fileUri,
@@ -111,18 +144,37 @@ describe("getMatchingLocations", () => {
       "/document/path.ts"
     );
     expect(mockedFindImportRefNames).toHaveBeenCalled();
+    expect(mockedAnalyzeTargetFileExports).toHaveBeenCalled();
+    expect(mockedAnalyzeDynamicImports).toHaveBeenCalled();
+    expect(mockedParseCodeToAST).toHaveBeenCalled();
 
-    // No references => fallback to single location with line=0, char=10
+    // Should have one location from the fallback (shouldIncludeCurrentImportDeclaration returned true)
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual({
       uri: { fsPath: "/path/to/file.ts" },
-      position: { line: 0, char: 10 },
+      range: expect.objectContaining({
+        start: expect.objectContaining({
+          line: 0,
+          character: 10,
+        }),
+        end: expect.objectContaining({
+          line: 0,
+          character: 10,
+        }),
+      }),
     });
   });
 
   it("returns found reference locations when findImportRefNames returns multiple names", async () => {
     mockedIsIncluded.mockReturnValue(true);
     mockedFindImportRefNames.mockResolvedValue(["CompOne", "CompTwo"]);
+
+    mockedAnalyzeTargetFileExports.mockResolvedValue({
+      name: "somecomponent",
+      isDefault: true,
+      isNamed: false,
+    });
+    mockedParseCodeToAST.mockReturnValue({} as any);
 
     // We'll pretend we find these references in the text at indexes 15 and 30 for "CompOne",
     // and indexes 50 and 75 for "CompTwo".
@@ -135,12 +187,21 @@ describe("getMatchingLocations", () => {
       CompTwo();
     `;
 
-    // For simplicity, we can just assume findLineAndCharPosition returns distinct lines
-    mockedFindLineAndCharPosition
-      .mockReturnValueOnce({ line: 1, char: 10 }) // first "CompOne"
-      .mockReturnValueOnce({ line: 3, char: 2 }) // second "CompOne"
-      .mockReturnValueOnce({ line: 4, char: 0 }) // first "CompTwo"
-      .mockReturnValueOnce({ line: 6, char: 5 }); // second "CompTwo"
+    // Mock the readFile to return the text as a Buffer
+    mockedReadFile.mockResolvedValue(Buffer.from(text));
+
+    // Mock analyze dynamic imports to return the 4 locations
+    const mockLocations = [
+      new vscode.Location(fileUri, new vscode.Position(1, 10)),
+      new vscode.Location(fileUri, new vscode.Position(3, 2)),
+      new vscode.Location(fileUri, new vscode.Position(4, 0)),
+      new vscode.Location(fileUri, new vscode.Position(6, 5)),
+    ];
+
+    mockedAnalyzeDynamicImports.mockReturnValue({
+      locations: mockLocations,
+      shouldIncludeCurrentImportDeclaration: false,
+    });
 
     const result = await getMatchingLocations({
       file: fileUri,
@@ -156,22 +217,10 @@ describe("getMatchingLocations", () => {
     // We have 4 matches total from "CompOne" and "CompTwo"
     expect(result).toHaveLength(4);
 
-    // Optionally check line/char from each returned location
-    expect(result[0]).toEqual({
-      uri: { fsPath: "/path/to/file.ts" },
-      position: { char: 10, line: 1 },
-    });
-    expect(result[1]).toEqual({
-      uri: { fsPath: "/path/to/file.ts" },
-      position: { char: 2, line: 3 },
-    });
-    expect(result[2]).toEqual({
-      uri: { fsPath: "/path/to/file.ts" },
-      position: { char: 0, line: 4 },
-    });
-    expect(result[3]).toEqual({
-      uri: { fsPath: "/path/to/file.ts" },
-      position: { char: 5, line: 6 },
-    });
+    // Check that the locations match what we mocked
+    expect(result[0]).toEqual(mockLocations[0]);
+    expect(result[1]).toEqual(mockLocations[1]);
+    expect(result[2]).toEqual(mockLocations[2]);
+    expect(result[3]).toEqual(mockLocations[3]);
   });
 });
