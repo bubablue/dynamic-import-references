@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.0](https://github.com/bubablue/dynamic-import-references/tree/1.0.0) (2025-07-22)
+
+[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v0.1.5...1.0.0)
+
+**Merged pull requests:**
+
+- feat\(ast-parsing\): Use AST for target references traversal [\#11](https://github.com/bubablue/dynamic-import-references/pull/11) ([bubablue](https://github.com/bubablue))
+
 ## [v0.1.5](https://github.com/bubablue/dynamic-import-references/tree/v0.1.5) (2025-06-13)
 
 [Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v0.1.4...v0.1.5)
