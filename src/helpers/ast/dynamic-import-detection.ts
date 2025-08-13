@@ -15,7 +15,7 @@ export function isDirectDynamicImport(
     return false;
   }
 
-  if (callee.name === "dynamic" || callee.name === "lazy") {
+  if (callee.name === "dynamic" || callee.name === "lazy" || callee.name === "loadable") {
     return true;
   }
 
@@ -29,7 +29,7 @@ export function isDirectDynamicImport(
     const isImportedIdentifier = t.isIdentifier(imported);
     const isLazyOrDynamic =
       isImportedIdentifier &&
-      (imported.name === "lazy" || imported.name === "dynamic");
+      (imported.name === "lazy" || imported.name === "dynamic" || imported.name === "loadable");
     const hasImportDecl = t.isImportDeclaration(importDecl);
     const hasSource = hasImportDecl && importDecl.source;
 
@@ -38,6 +38,7 @@ export function isDirectDynamicImport(
       return (
         importSource === "react" ||
         importSource === "next/dynamic" ||
+        importSource === "@loadable/component" ||
         importSource.includes("dynamic")
       );
     }
@@ -64,6 +65,7 @@ export function isMemberExpressionDynamicImport(
   if (
     propertyName !== "lazy" &&
     propertyName !== "dynamic" &&
+    propertyName !== "loadable" &&
     propertyName !== "default"
   ) {
     return false;
@@ -82,6 +84,7 @@ export function isMemberExpressionDynamicImport(
         return (
           importSource === "react" ||
           importSource === "next/dynamic" ||
+          importSource === "@loadable/component" ||
           importSource.includes("dynamic")
         );
       }

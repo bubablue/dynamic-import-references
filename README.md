@@ -5,7 +5,7 @@
 </h1>
 
 <p align="center">
-  <strong> ⚡️ Supercharge VS Code's "Find All References" with React.lazy() and Next.js dynamic() detection</strong><br/>
+  <strong> ⚡️ Supercharge VS Code's "Find All References" with React.lazy(), Next.js dynamic(), and @loadable/component detection</strong><br/>
 </p>
 
 <div align="center" style="margin: 24px 0; padding: 16px;">
@@ -65,17 +65,19 @@
 ## ✨ Why You'll Love This Extension
 
 ### **Smart React & Next.js Detection**
-Automatically finds React lazy and Next.js dynamic imports that VS Code's built-in search misses:
+Automatically finds React lazy, Next.js dynamic, and @loadable/component imports that VS Code's built-in search misses:
 ```jsx
 // These are now included in "Find All References"!
 const LazyComponent = React.lazy(() => import('./MyComponent'));
 const DynamicComponent = dynamic(() => import('./MyComponent'));
+const LoadableComponent = loadable(() => import('./MyComponent'));
 ```
 
 ### ⚡ **Zero Configuration**
 Just install and go! Works seamlessly with:
 - **React** code splitting with `React.lazy()`
 - **Next.js** dynamic imports with `dynamic()`
+- **@loadable/component** for advanced code splitting
 - Any React-based framework using these patterns
 - Custom lazy loading implementations
 
@@ -117,11 +119,11 @@ Download the latest `.vsix` file from [releases](https://github.com/bubablue/dyn
 ### 🎯 How to Use
 
 1. **Open any React/Next.js file** in your project
-2. **Right-click** on a component name that's used in `React.lazy()` or `dynamic()`
+2. **Right-click** on a component name that's used in `React.lazy()`, `dynamic()`, or `loadable()`
 3. **Select "Find All References"** (or press `Shift+F12`)
-4. **Enjoy complete results** including lazy and dynamic imports! 🎉
+4. **Enjoy complete results** including lazy, dynamic, and loadable imports! 🎉
 
-> **Pro Tip:** Works especially well with React components that are code-split using `React.lazy()` or Next.js `dynamic()` imports!
+> **Pro Tip:** Works especially well with React components that are code-split using `React.lazy()`, Next.js `dynamic()`, or `@loadable/component` imports!
 
 ## 📋 Supported Patterns & Languages
 
@@ -129,8 +131,8 @@ Download the latest `.vsix` file from [releases](https://github.com/bubablue/dyn
 
 | Language | Extensions | Supported Patterns |
 |----------|------------|-------------------|
-| **JavaScript** | `.js`, `.jsx` | `React.lazy()`, `dynamic()` |
-| **TypeScript** | `.ts`, `.tsx` | `React.lazy()`, `dynamic()`, with types |
+| **JavaScript** | `.js`, `.jsx` | `React.lazy()`, `dynamic()`, `loadable()` |
+| **TypeScript** | `.ts`, `.tsx` | `React.lazy()`, `dynamic()`, `loadable()`, with types |
 
 </div>
 
@@ -149,13 +151,22 @@ const ConditionalComponent = dynamic(() => import('./components/Modal'), {
   ssr: false
 });
 
-// Variable declarations with lazy/dynamic
+// @loadable/component imports
+import loadable from '@loadable/component';
+const LoadableComponent = loadable(() => import('./components/LoadableComponent'));
+const LoadableWithOptions = loadable(() => import('./components/Advanced'), {
+  fallback: <div>Loading...</div>
+});
+
+// Variable declarations with lazy/dynamic/loadable
 let MyLazyComp = React.lazy(() => import('./MyComponent'));
 var MyDynamicComp = dynamic(() => import('./MyComponent'));
+const MyLoadableComp = loadable(() => import('./MyComponent'));
 const MyComponent = lazy(() => import('./path/to/MyComponent'));
 
 // TypeScript with types
 const TypedComponent: React.ComponentType = lazy(() => import('./TypedComponent'));
+const TypedLoadable: LoadableComponent<any> = loadable(() => import('./TypedLoadable'));
 ```
 
 ### ❌ **Not Supported (Standard ES6 dynamic imports)**
@@ -247,7 +258,8 @@ We welcome contributions! Here's how you can help:
 #### 🎯 **Core Features** 
 - 🔍 **React.lazy() detection** - *Fully implemented*
 - ⚡ **Next.js dynamic() detection** - *Production ready*
-- 📘 **TypeScript support** - *Complete with types*
+- � **@loadable/component support** - *Complete integration*
+- �📘 **TypeScript support** - *Complete with types*
 - 🔗 **Path alias resolution** - *All aliases supported*
 
 </td>
