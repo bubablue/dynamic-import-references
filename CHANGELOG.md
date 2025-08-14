@@ -1,8 +1,16 @@
 # Changelog
 
-## [1.0.0](https://github.com/bubablue/dynamic-import-references/tree/1.0.0) (2025-07-22)
+## [1.1.0](https://github.com/bubablue/dynamic-import-references/tree/1.1.0) (2025-08-14)
 
-[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v0.1.5...1.0.0)
+[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v1.0.0...1.1.0)
+
+**Merged pull requests:**
+
+- feat\(loadable-support\): Adds support for loadable component imports [\#13](https://github.com/bubablue/dynamic-import-references/pull/13) ([bubablue](https://github.com/bubablue))
+
+## [v1.0.0](https://github.com/bubablue/dynamic-import-references/tree/v1.0.0) (2025-07-22)
+
+[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v0.1.5...v1.0.0)
 
 **Merged pull requests:**
 
