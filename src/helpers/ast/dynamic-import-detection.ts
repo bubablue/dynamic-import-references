@@ -1,6 +1,6 @@
 import { Binding, NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
-import { DEFAULT_MATCHERS } from "../../constants";
+import { DEFAULT_FUNCTION_NAMES, DEFAULT_MATCHERS } from "../../constants";
 import { CustomMatcher } from "../../types/customMatchers";
 
 let customMatchers: CustomMatcher[] = [];
@@ -35,12 +35,10 @@ function matchesImport(
   matcher: CustomMatcher,
   isAliased: boolean = false
 ): boolean {
-  // Check source match
   if (matcher.source && matcher.source !== importSource) {
     return false;
   }
 
-  // Check name match for named imports
   if (matcher.kind === "named" && matcher.name) {
     if (!matcher.allowAlias && isAliased) {
       return false;
@@ -48,7 +46,6 @@ function matchesImport(
     return importedName === matcher.name;
   }
 
-  // For default imports, any default import from the source matches
   if (matcher.kind === "default") {
     return true;
   }
@@ -80,11 +77,10 @@ function matchesCustomMatcher(binding: Binding, calleeName: string): boolean {
       return false;
     }
 
-    // Check if it's aliased - default to false if local is not available (for test compatibility)
     const isAliased =
       importSpecifier.local && t.isIdentifier(importSpecifier.local)
         ? importSpecifier.local.name !== imported.name
-        : false; // Default to not aliased if we can't determine
+        : false;
 
     return matchers.some((matcher) =>
       matchesImport(imported.name, importSource, matcher, isAliased)
@@ -122,7 +118,6 @@ function matchesCustomMatcher(binding: Binding, calleeName: string): boolean {
     );
   }
 
-  // Check for identifier matchers (local/project utilities)
   return matchers.some(
     (matcher) =>
       matcher.kind === "identifier" &&
@@ -147,12 +142,7 @@ export function isDirectDynamicImport(
     return false;
   }
 
-  // Check if it's a direct match with built-in names
-  if (
-    callee.name === "dynamic" ||
-    callee.name === "lazy" ||
-    callee.name === "loadable"
-  ) {
+  if (callee.name && DEFAULT_FUNCTION_NAMES.includes(callee.name)) {
     return true;
   }
 
@@ -161,7 +151,6 @@ export function isDirectDynamicImport(
     return matchesCustomMatcher(binding, callee.name);
   }
 
-  // Check for identifier matchers that don't require imports
   const matchers = getAllMatchers();
   return matchers.some(
     (matcher: CustomMatcher) =>
@@ -186,11 +175,7 @@ export function isMemberExpressionDynamicImport(
   }
 
   const propertyName = callee.property.name;
-
-  // Check built-in property names first
-  const isBuiltinProperty = ["lazy", "dynamic", "loadable"].includes(
-    propertyName
-  );
+  const isBuiltinProperty = DEFAULT_FUNCTION_NAMES.includes(propertyName);
 
   if (t.isIdentifier(callee.object)) {
     const objectBinding = path.scope?.getBinding?.(callee.object.name);
@@ -203,7 +188,6 @@ export function isMemberExpressionDynamicImport(
       if (hasSource) {
         const importSource = importDecl.source.value;
 
-        // Check built-in patterns first
         if (
           isBuiltinProperty &&
           (importSource === "react" ||
@@ -214,7 +198,6 @@ export function isMemberExpressionDynamicImport(
           return true;
         }
 
-        // Check custom matchers for member access patterns
         const matchers = getAllMatchers();
         return matchers.some((matcher: CustomMatcher) => {
           if (matcher.kind === "member" && matcher.source === importSource) {
@@ -227,7 +210,6 @@ export function isMemberExpressionDynamicImport(
             }
           }
 
-          // Back-compat support for memberAccess flag
           if (matcher.memberAccess && matcher.source === importSource) {
             return matcher.name === propertyName;
           }

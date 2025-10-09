@@ -47,7 +47,6 @@ function getAllFunctionNames(): string[] {
     ...memberAccessNames,
   ];
 
-  // Remove duplicates and escape special regex characters
   return [...new Set(allNames)].map((name) =>
     name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
   );
