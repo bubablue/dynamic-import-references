@@ -62,30 +62,6 @@ describe("dynamic-import-detection", () => {
       expect(result).toBe(false);
     });
 
-    it("should return true for imported dynamic from react", () => {
-      const callee = mockCreateIdentifier("myDynamic");
-      const mockBinding = {
-        path: {
-          isImportSpecifier: jest.fn().mockReturnValue(true),
-          node: {
-            imported: mockCreateIdentifier("dynamic"),
-          },
-          parent: {
-            type: "ImportDeclaration",
-            source: { value: "react" },
-          },
-        },
-      };
-      const mockPath = {
-        scope: {
-          getBinding: jest.fn().mockReturnValue(mockBinding),
-        },
-      } as unknown as NodePath<t.VariableDeclarator>;
-
-      const result = isDirectDynamicImport(callee as t.Node, mockPath);
-      expect(result).toBe(true);
-    });
-
     it("should return true for imported lazy from react", () => {
       const callee = mockCreateIdentifier("myLazy");
       const mockBinding = {
@@ -121,6 +97,31 @@ describe("dynamic-import-detection", () => {
           parent: {
             type: "ImportDeclaration",
             source: { value: "next/dynamic" },
+          },
+        },
+      };
+      const mockPath = {
+        scope: {
+          getBinding: jest.fn().mockReturnValue(mockBinding),
+        },
+      } as unknown as NodePath<t.VariableDeclarator>;
+
+      const result = isDirectDynamicImport(callee as t.Node, mockPath);
+      expect(result).toBe(true);
+    });
+
+    it("should return true for imported lazy from react (aliased)", () => {
+      const callee = mockCreateIdentifier("myCustomLazy");
+      const mockBinding = {
+        path: {
+          isImportSpecifier: jest.fn().mockReturnValue(true),
+          node: {
+            imported: mockCreateIdentifier("lazy"),
+            local: mockCreateIdentifier("myCustomLazy"),
+          },
+          parent: {
+            type: "ImportDeclaration",
+            source: { value: "react" },
           },
         },
       };

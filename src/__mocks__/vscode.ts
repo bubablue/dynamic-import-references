@@ -1,6 +1,12 @@
 const vscode = {
     workspace: {
       findFiles: jest.fn(),
+      getConfiguration: jest.fn().mockReturnValue({
+        get: jest.fn().mockReturnValue([]),
+      }),
+      onDidChangeConfiguration: jest.fn().mockReturnValue({
+        dispose: jest.fn(),
+      }),
     },
     Position: jest.fn().mockImplementation((line, char) => ({ line, char })),
     Location: jest.fn().mockImplementation((uri, position) => ({ uri, position })),

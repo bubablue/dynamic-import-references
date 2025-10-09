@@ -30,7 +30,59 @@
         "command": "dynamic-import-references.findReferences",
         "title": "Find References Including Dynamic Imports"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Dynamic Import References",
+      "properties": {
+        "dynamicImportReferences.customMatchers": {
+          "type": "array",
+          "default": [],
+          "description": "Custom matcher configurations for dynamic import detection.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": ["named", "default", "member", "identifier"],
+                "description": "How the function is referenced: 'named' = named import, 'default' = default import, 'member' = namespace member (e.g. R.lazy), 'identifier' = local/project utility."
+              },
+              "name": {
+                "type": "string",
+                "description": "Function or identifier name to detect (e.g. 'lazy', 'loadable', 'myLazy'). Required for 'named', 'member', and 'identifier'."
+              },
+              "source": {
+                "type": "string",
+                "description": "Module specifier used in import statements (e.g. 'react', '@loadable/component'). Required for 'named', 'default', and 'member'."
+              },
+              "namespace": {
+                "type": "string",
+                "description": "Namespace identifier when kind = 'member' (e.g. 'R' in R.lazy)."
+              },
+              "member": {
+                "type": "string",
+                "description": "Member function name when kind = 'member' (e.g. 'lazy' in R.lazy)."
+              },
+              "allowAlias": {
+                "type": "boolean",
+                "default": true,
+                "description": "Allow matches even if the import is aliased (e.g. { lazy as myLazy })."
+              },
+              "requireImport": {
+                "type": "boolean",
+                "default": true,
+                "description": "Require the function to be imported from a module rather than declared locally."
+              },
+              "memberAccess": {
+                "type": "boolean",
+                "default": false,
+                "description": "Back-compat: allow member access patterns (e.g. MyLib.lazy). Usually implied when kind = 'member'."
+              }
+            },
+            "required": ["kind"]
+          }
+        }
+      }
+    }
   },
   "tasks": [
     {

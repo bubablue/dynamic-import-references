@@ -1,5 +1,137 @@
 import { Binding, NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
+import { DEFAULT_MATCHERS } from "../../constants";
+import { CustomMatcher } from "../../types/customMatchers";
+
+let customMatchers: CustomMatcher[] = [];
+
+/**
+ * Set custom matchers configuration
+ * @param matchers - Array of custom matcher configurations
+ */
+export function setCustomMatchers(matchers: CustomMatcher[]): void {
+  customMatchers = matchers;
+}
+
+/**
+ * Get all matchers (built-in + custom)
+ * @returns Combined array of all matchers
+ */
+function getAllMatchers(): CustomMatcher[] {
+  return [...DEFAULT_MATCHERS, ...customMatchers];
+}
+
+/**
+ * Check if an import matches any of the configured matchers
+ * @param importedName - The imported identifier name
+ * @param importSource - The module specifier
+ * @param matcher - The matcher configuration
+ * @param isAliased - Whether the import is aliased
+ * @returns True if the import matches the matcher
+ */
+function matchesImport(
+  importedName: string,
+  importSource: string,
+  matcher: CustomMatcher,
+  isAliased: boolean = false
+): boolean {
+  // Check source match
+  if (matcher.source && matcher.source !== importSource) {
+    return false;
+  }
+
+  // Check name match for named imports
+  if (matcher.kind === "named" && matcher.name) {
+    if (!matcher.allowAlias && isAliased) {
+      return false;
+    }
+    return importedName === matcher.name;
+  }
+
+  // For default imports, any default import from the source matches
+  if (matcher.kind === "default") {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Check if a binding matches any custom matcher
+ * @param binding - The babel binding to check
+ * @param calleeName - The name being called
+ * @returns True if the binding matches a custom matcher
+ */
+function matchesCustomMatcher(binding: Binding, calleeName: string): boolean {
+  const matchers = getAllMatchers();
+
+  if (binding.path?.isImportSpecifier?.()) {
+    const importSpecifier = binding.path.node;
+    const importDecl = binding.path.parent;
+
+    if (!t.isImportDeclaration(importDecl) || !importDecl.source) {
+      return false;
+    }
+
+    const importSource = importDecl.source.value;
+    const imported = importSpecifier.imported;
+
+    if (!t.isIdentifier(imported)) {
+      return false;
+    }
+
+    // Check if it's aliased - default to false if local is not available (for test compatibility)
+    const isAliased =
+      importSpecifier.local && t.isIdentifier(importSpecifier.local)
+        ? importSpecifier.local.name !== imported.name
+        : false; // Default to not aliased if we can't determine
+
+    return matchers.some((matcher) =>
+      matchesImport(imported.name, importSource, matcher, isAliased)
+    );
+  }
+
+  if (binding.path?.isImportDefaultSpecifier?.()) {
+    const importDecl = binding.path.parent;
+
+    if (!t.isImportDeclaration(importDecl) || !importDecl.source) {
+      return false;
+    }
+
+    const importSource = importDecl.source.value;
+
+    return matchers.some(
+      (matcher) => matcher.kind === "default" && matcher.source === importSource
+    );
+  }
+
+  if (binding.path?.isImportNamespaceSpecifier?.()) {
+    const importDecl = binding.path.parent;
+
+    if (!t.isImportDeclaration(importDecl) || !importDecl.source) {
+      return false;
+    }
+
+    const importSource = importDecl.source.value;
+
+    return matchers.some(
+      (matcher) =>
+        matcher.kind === "member" &&
+        matcher.source === importSource &&
+        matcher.namespace === binding.identifier.name
+    );
+  }
+
+  // Check for identifier matchers (local/project utilities)
+  return matchers.some(
+    (matcher) =>
+      matcher.kind === "identifier" &&
+      matcher.name === calleeName &&
+      (!matcher.requireImport ||
+        binding.path?.isImportSpecifier?.() ||
+        binding.path?.isImportDefaultSpecifier?.())
+  );
+}
 
 /**
  * Check if a direct call is a dynamic/lazy import
@@ -15,36 +147,28 @@ export function isDirectDynamicImport(
     return false;
   }
 
-  if (callee.name === "dynamic" || callee.name === "lazy" || callee.name === "loadable") {
+  // Check if it's a direct match with built-in names
+  if (
+    callee.name === "dynamic" ||
+    callee.name === "lazy" ||
+    callee.name === "loadable"
+  ) {
     return true;
   }
 
   const binding = path.scope.getBinding(callee.name);
-  if (binding?.path?.isImportSpecifier?.()) {
-    const importSpecifier = binding.path.node;
-    const importDecl = binding.path.parent;
-
-    const imported = importSpecifier.imported;
-
-    const isImportedIdentifier = t.isIdentifier(imported);
-    const isLazyOrDynamic =
-      isImportedIdentifier &&
-      (imported.name === "lazy" || imported.name === "dynamic" || imported.name === "loadable");
-    const hasImportDecl = t.isImportDeclaration(importDecl);
-    const hasSource = hasImportDecl && importDecl.source;
-
-    if (isLazyOrDynamic && hasSource) {
-      const importSource = importDecl.source.value;
-      return (
-        importSource === "react" ||
-        importSource === "next/dynamic" ||
-        importSource === "@loadable/component" ||
-        importSource.includes("dynamic")
-      );
-    }
+  if (binding) {
+    return matchesCustomMatcher(binding, callee.name);
   }
 
-  return false;
+  // Check for identifier matchers that don't require imports
+  const matchers = getAllMatchers();
+  return matchers.some(
+    (matcher: CustomMatcher) =>
+      matcher.kind === "identifier" &&
+      matcher.name === callee.name &&
+      !matcher.requireImport
+  );
 }
 
 /**
@@ -62,17 +186,14 @@ export function isMemberExpressionDynamicImport(
   }
 
   const propertyName = callee.property.name;
-  if (
-    propertyName !== "lazy" &&
-    propertyName !== "dynamic" &&
-    propertyName !== "loadable" &&
-    propertyName !== "default"
-  ) {
-    return false;
-  }
+
+  // Check built-in property names first
+  const isBuiltinProperty = ["lazy", "dynamic", "loadable"].includes(
+    propertyName
+  );
 
   if (t.isIdentifier(callee.object)) {
-    const objectBinding = path.scope.getBinding(callee.object.name);
+    const objectBinding = path.scope?.getBinding?.(callee.object.name);
     if (objectBinding?.path) {
       const importDecl = objectBinding.path.parent;
 
@@ -81,12 +202,38 @@ export function isMemberExpressionDynamicImport(
 
       if (hasSource) {
         const importSource = importDecl.source.value;
-        return (
-          importSource === "react" ||
-          importSource === "next/dynamic" ||
-          importSource === "@loadable/component" ||
-          importSource.includes("dynamic")
-        );
+
+        // Check built-in patterns first
+        if (
+          isBuiltinProperty &&
+          (importSource === "react" ||
+            importSource === "next/dynamic" ||
+            importSource === "@loadable/component" ||
+            importSource.includes("dynamic"))
+        ) {
+          return true;
+        }
+
+        // Check custom matchers for member access patterns
+        const matchers = getAllMatchers();
+        return matchers.some((matcher: CustomMatcher) => {
+          if (matcher.kind === "member" && matcher.source === importSource) {
+            if (
+              matcher.namespace &&
+              t.isIdentifier(callee.object) &&
+              matcher.namespace === callee.object.name
+            ) {
+              return matcher.member === propertyName;
+            }
+          }
+
+          // Back-compat support for memberAccess flag
+          if (matcher.memberAccess && matcher.source === importSource) {
+            return matcher.name === propertyName;
+          }
+
+          return false;
+        });
       }
     }
   }
