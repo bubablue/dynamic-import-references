@@ -175,7 +175,9 @@ export function isMemberExpressionDynamicImport(
   }
 
   const propertyName = callee.property.name;
-  const isBuiltinProperty = DEFAULT_FUNCTION_NAMES.includes(propertyName);
+  const isBuiltinProperty = [...DEFAULT_FUNCTION_NAMES, "default"].includes(
+    propertyName
+  );
 
   if (t.isIdentifier(callee.object)) {
     const objectBinding = path.scope?.getBinding?.(callee.object.name);
