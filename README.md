@@ -180,6 +180,97 @@ const { Component } = await import('./Component');
 
 **Zero configuration required!** 🎉 The extension works automatically when enabled.
 
+### 🎛️ Custom Matchers
+
+Want to add support for your own lazy loading functions or libraries? You can configure custom matchers in your VS Code settings:
+
+<details>
+<summary><strong>📝 Custom Matchers Configuration (Click to expand)</strong></summary>
+
+Add this to your VS Code `settings.json`:
+
+```json
+{
+  "dynamicImportReferences.customMatchers": [
+    {
+      "kind": "named",
+      "name": "asyncComponent", 
+      "source": "react-async-component",
+      "allowAlias": true
+    },
+    {
+      "kind": "member",
+      "namespace": "React",
+      "member": "lazy",
+      "source": "react"
+    },
+    {
+      "kind": "identifier",
+      "name": "myCustomLoader",
+      "requireImport": false
+    }
+  ]
+}
+```
+
+#### Configuration Options
+
+| Property | Type | Description | Required |
+|----------|------|-------------|----------|
+| **`kind`** | `string` | How the function is referenced:<br/>• `"named"` = named import (`import { lazy }`)<br/>• `"default"` = default import (`import dynamic`)<br/>• `"member"` = namespace member (`React.lazy`)<br/>• `"identifier"` = local/project utility | ✅ |
+| **`name`** | `string` | Function name to detect (e.g., `"lazy"`, `"loadable"`, `"myLazy"`) | For `named`, `member`, `identifier` |
+| **`source`** | `string` | Module specifier (e.g., `"react"`, `"@loadable/component"`) | For `named`, `default`, `member` |
+| **`namespace`** | `string` | Namespace identifier for member access (e.g., `"R"` in `R.lazy`) | For `member` |
+| **`member`** | `string` | Member function name (e.g., `"lazy"` in `R.lazy`) | For `member` |
+| **`allowAlias`** | `boolean` | Allow aliased imports (e.g., `{ lazy as myLazy }`) | Optional (default: `true`) |
+| **`requireImport`** | `boolean` | Require function to be imported vs. locally declared | Optional (default: `true`) |
+| **`memberAccess`** | `boolean` | Back-compat: allow member access patterns | Optional (default: `false`) |
+
+#### Examples
+
+**Named Import Pattern:**
+```json
+{
+  "kind": "named",
+  "name": "asyncComponent",
+  "source": "react-async-component"
+}
+```
+Detects: `import { asyncComponent } from 'react-async-component'`
+
+**Member Access Pattern:**
+```json
+{
+  "kind": "member", 
+  "namespace": "Utils",
+  "member": "lazy",
+  "source": "./utils"
+}
+```
+Detects: `import * as Utils from './utils'` then `Utils.lazy(...)`
+
+**Local Function Pattern:**
+```json
+{
+  "kind": "identifier",
+  "name": "myLazyLoader", 
+  "requireImport": false
+}
+```
+Detects: Locally defined `myLazyLoader` function
+
+</details>
+
+### 🔧 Built-in Patterns
+
+The extension automatically detects these patterns without configuration:
+
+| Library | Pattern | Example |
+|---------|---------|---------|
+| **React** | `lazy` | `const Comp = lazy(() => import('./Comp'))` |
+| **Next.js** | `dynamic` | `const Comp = dynamic(() => import('./Comp'))` |
+| **@loadable/component** | `loadable` | `const Comp = loadable(() => import('./Comp'))` |
+
 ## 🛠️ Development & Contributing
 
 <details>
@@ -258,8 +349,9 @@ We welcome contributions! Here's how you can help:
 #### 🎯 **Core Features** 
 - 🔍 **React.lazy() detection** - *Fully implemented*
 - ⚡ **Next.js dynamic() detection** - *Production ready*
-- � **@loadable/component support** - *Complete integration*
-- �📘 **TypeScript support** - *Complete with types*
+- 📦 **@loadable/component support** - *Complete integration*
+- 📘 **TypeScript support** - *Complete with types*
+- 🎨 **Custom import patterns** - *Configurable matchers*
 - 🔗 **Path alias resolution** - *All aliases supported*
 
 </td>
@@ -268,8 +360,8 @@ We welcome contributions! Here's how you can help:
 #### 🔮 **Future Enhancements**
 - 🔥 **Webpack lazy imports** - *Coming soon*
 - 📱 **React Native support** - *Under consideration*
-- 🎨 **Custom import patterns** - *Planned*
 - 🚀 **Performance optimizations** - *Ongoing*
+- 🎯 **Enhanced pattern detection** - *Continuous improvement*
 
 </td>
 </tr>
