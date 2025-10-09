@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { getMatchingLocations } from "../code/get-matching-locations";
-import { tsx_dynamic_regex } from "../regexp";
+import { getTsxDynamicRegex } from "../regexp";
 import { resolveAlias } from "../ts-config/resolve-alias";
 import { extractComponentNames } from "./find-component-name";
 import { resolveImportPath } from "./resolve-import-path";
@@ -24,7 +24,8 @@ export async function findDynamicImports({
   aliases,
   hasAlias,
 }: FindDynamicImportsParams): Promise<vscode.Location[]> {
-  const matches = Array.from(text.matchAll(tsx_dynamic_regex));
+  const dynamicRegex = getTsxDynamicRegex();
+  const matches = Array.from(text.matchAll(dynamicRegex));
 
   if (!matches?.length) {
     return [];
