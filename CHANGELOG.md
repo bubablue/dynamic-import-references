@@ -1,8 +1,20 @@
 # Changelog
 
-## [1.1.0](https://github.com/bubablue/dynamic-import-references/tree/1.1.0) (2025-08-14)
+## [1.2.0](https://github.com/bubablue/dynamic-import-references/tree/1.2.0) (2025-10-09)
 
-[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v1.0.0...1.1.0)
+[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v1.1.0...1.2.0)
+
+**Closed issues:**
+
+- support for loadable [\#12](https://github.com/bubablue/dynamic-import-references/issues/12)
+
+**Merged pull requests:**
+
+- feat\(custom-functions\): Add support for custom loaders [\#17](https://github.com/bubablue/dynamic-import-references/pull/17) ([bubablue](https://github.com/bubablue))
+
+## [v1.1.0](https://github.com/bubablue/dynamic-import-references/tree/v1.1.0) (2025-08-14)
+
+[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v1.0.0...v1.1.0)
 
 **Merged pull requests:**
 
