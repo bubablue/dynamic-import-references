@@ -208,4 +208,43 @@ describe("analyzeTargetFileExports", () => {
       isNamed: false,
     });
   });
+
+  it("should return true for isDefault and false for isNamed", async () => {
+    const mockContent =
+      "export default function MyComponent() { return null };";
+    mockReadFile.mockResolvedValue(Buffer.from(mockContent));
+    mockParseCodeToAST.mockReturnValue({} as any);
+    (
+      t.isIdentifier as jest.MockedFunction<typeof t.isIdentifier>
+    ).mockReturnValue(true);
+    (
+      t.isFunctionDeclaration as jest.MockedFunction<
+        typeof t.isFunctionDeclaration
+      >
+    ).mockReturnValue(true);
+
+    mockTraverse.mockImplementation((_ast: any, visitor: any) => {
+      const mockPath = {
+        node: {
+          declaration: {
+            id: {
+              name: "MyComponent",
+            },
+          },
+        },
+      };
+      visitor.ExportDefaultDeclaration(mockPath);
+    });
+
+    const result = await analyzeTargetFileExports(
+      "/test/path.ts",
+      "MyComponent"
+    );
+
+    expect(result).toEqual({
+      name: "MyComponent",
+      isDefault: true,
+      isNamed: false,
+    });
+  });
 });

@@ -32,10 +32,7 @@ export async function analyzeTargetFileExports(
 
     traverse(targetAst, {
       ExportDefaultDeclaration(path) {
-        if (
-          t.isIdentifier(path.node.declaration) &&
-          path.node.declaration.name === searchWord
-        ) {
+        if (checkDefaultExportDeclaration(path.node, searchWord)) {
           exportTypes.isDefault = true;
         }
       },
@@ -119,6 +116,42 @@ function checkExportSpecifiers(
       return true;
     }
   }
+  return false;
+}
+
+/**
+ * Checks if a default export declaration matches the specified search word.
+ *
+ * @param node - The export default declaration node to analyze
+ * @param searchWord - The identifier name to search for
+ * @returns True if the search word is found in the default export declaration
+ */
+function checkDefaultExportDeclaration(
+  node: t.ExportDefaultDeclaration,
+  searchWord: string
+): boolean {
+  const { declaration } = node;
+
+  // export default searchWord;
+  if (
+    t.isIdentifier(declaration) &&
+    declaration.name === searchWord
+  ) {
+    return true;
+  }
+
+  // export default function searchWord() {}
+  if (t.isFunctionDeclaration(declaration)) {
+    if (checkFunctionDeclaration(declaration, searchWord)) {
+      return true;
+    }
+  }
+
+  // export default class searchWord {}
+  if (t.isClassDeclaration(declaration) && declaration.id) {
+    return declaration.id.name === searchWord;
+  }
+
   return false;
 }
 
