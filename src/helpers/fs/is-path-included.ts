@@ -1,4 +1,4 @@
-import * as path from "path";
+import * as path from "node:path";
 import {
   ext_pattern_regex,
   index_pattern_regex,

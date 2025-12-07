@@ -1,4 +1,4 @@
-import * as path from "path";
+import * as path from "node:path";
 import * as vscode from "vscode";
 import { processFile } from "./helpers/code/process-file";
 import { findFile } from "./helpers/fs/find-file";

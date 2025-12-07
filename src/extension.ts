@@ -93,7 +93,9 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-  subscriptions.forEach((disposable) => disposable.dispose());
+  for (const disposable of subscriptions) {
+    disposable.dispose();
+  }
   subscriptions.length = 0;
   console.log("❌ Dynamic Import References Extension Deactivated!");
 }

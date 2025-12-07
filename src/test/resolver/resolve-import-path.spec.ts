@@ -1,5 +1,5 @@
-import * as fs from "fs/promises";
-import * as path from "path";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
 import { resolveImportPath } from "../../helpers/resolver/resolve-import-path";
 
 jest.mock("fs/promises");

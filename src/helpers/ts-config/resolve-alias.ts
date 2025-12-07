@@ -1,4 +1,4 @@
-import * as path from "path";
+import * as path from "node:path";
 import { removeDuplicateSuffix } from "../fs/remove-duplicated-path";
 
 export function resolveAlias(

@@ -54,25 +54,29 @@ function getAllFunctionNames(): string[] {
 
 /**
  * Generate dynamic regex for detecting dynamic imports
+ * Uses [\s\S] instead of . to match newlines for multiline imports
+ * Handles block comments inside import() calls
  * @returns Regex pattern for dynamic imports
  */
 export function getTsxDynamicRegex(): RegExp {
   const functionNames = getAllFunctionNames();
   const pattern = `(${functionNames.join(
     "|"
-  )})\\s*\\(\\s*\\(\\s*.*?\\s*=>\\s*import\\(['"'](.+?)['"']\\)`;
+  )})\\s*\\([\\s\\S]*?import\\s*\\(\\s*(?:\\/\\*[\\s\\S]*?\\*\\/)?\\s*['"']([^'"]+)['"']\\s*\\)`;
   return new RegExp(pattern, "gi");
 }
 
 /**
  * Generate dynamic regex for full dynamic import declarations
+ * Uses [\s\S] instead of . to match newlines for multiline imports
+ * Handles block comments inside import() calls
  * @returns Regex pattern for full dynamic import declarations
  */
 export function getTsxFullDynamicRegex(): RegExp {
   const functionNames = getAllFunctionNames();
   const pattern = `(const|let|var|function)\\s+(\\w+)\\s*=\\s*(?:${functionNames.join(
     "|"
-  )})\\s*\\(\\s*\\(\\s*.*?\\s*=>\\s*import\\(['"'](.+?)['"']\\)`;
+  )})\\s*\\([\\s\\S]*?import\\s*\\(\\s*(?:\\/\\*[\\s\\S]*?\\*\\/)?\\s*['"']([^'"]+)['"']\\s*\\)`;
   return new RegExp(pattern, "gi");
 }
 
