@@ -1,5 +1,5 @@
 import * as fs from "fs/promises";
-import * as path from "path";
+import * as path from "node:path";
 import { ext_pattern_regex, extensions } from "../regexp";
 import { log } from "../utils/logger";
 

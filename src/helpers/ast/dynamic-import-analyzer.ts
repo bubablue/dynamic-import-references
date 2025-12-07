@@ -70,6 +70,20 @@ export function analyzeDynamicImports(
           }
         }
       },
+      JSXIdentifier(path) {
+        const name = path.node.name;
+        if (dynamicImportBindings.has(name)) {
+          const binding = path.scope.getBinding(name);
+          const originalBinding = dynamicImportBindings.get(name);
+
+          if (binding === originalBinding && path.node.loc) {
+            const { line, column } = path.node.loc.start;
+            locations.push(
+              new vscode.Location(file, new vscode.Position(line - 1, column))
+            );
+          }
+        }
+      },
     });
   } catch (e) {
     log.warn("AST parsing failed in analyzeDynamicImports:", e);

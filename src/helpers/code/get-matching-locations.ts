@@ -1,4 +1,4 @@
-import * as path from "path";
+import * as path from "node:path";
 import * as vscode from "vscode";
 import { analyzeTargetFileExports } from "../ast/analyze-target-exports";
 import { parseCodeToAST } from "../ast/ast-utils";

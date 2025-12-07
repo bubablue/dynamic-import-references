@@ -1,4 +1,4 @@
-import path from "path";
+import path from "node:path";
 import { removeDuplicateSuffix } from "../../helpers/fs/remove-duplicated-path";
 import { resolveAlias } from "../../helpers/ts-config/resolve-alias";
 
