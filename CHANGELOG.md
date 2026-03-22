@@ -1,8 +1,42 @@
 # Changelog
 
-## [1.2.0](https://github.com/bubablue/dynamic-import-references/tree/1.2.0) (2025-10-09)
+## [1.2.3](https://github.com/bubablue/dynamic-import-references/tree/1.2.3) (2026-03-22)
 
-[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v1.1.0...1.2.0)
+[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v1.2.2...1.2.3)
+
+**Closed issues:**
+
+- tsconfig.json with comments causes silent alias resolution failure [\#22](https://github.com/bubablue/dynamic-import-references/issues/22)
+
+**Merged pull requests:**
+
+- feat\(deps-update\): Ugrade deps and esbuild for parseJsonc [\#24](https://github.com/bubablue/dynamic-import-references/pull/24) ([bubablue](https://github.com/bubablue))
+- fix: use jsonc-parser for tsconfig loading [\#23](https://github.com/bubablue/dynamic-import-references/pull/23) ([ihatem](https://github.com/ihatem))
+
+## [v1.2.2](https://github.com/bubablue/dynamic-import-references/tree/v1.2.2) (2025-12-07)
+
+[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v1.2.1...v1.2.2)
+
+**Merged pull requests:**
+
+- feat\(webpack-comments\): Add webpack's comment handlers [\#21](https://github.com/bubablue/dynamic-import-references/pull/21) ([bubablue](https://github.com/bubablue))
+- build\(deps\): bump glob from 10.4.5 to 10.5.0 [\#20](https://github.com/bubablue/dynamic-import-references/pull/20) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [v1.2.1](https://github.com/bubablue/dynamic-import-references/tree/v1.2.1) (2025-10-20)
+
+[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v1.2.0...v1.2.1)
+
+**Closed issues:**
+
+- Add config for custom calllee [\#16](https://github.com/bubablue/dynamic-import-references/issues/16)
+
+**Merged pull requests:**
+
+- feat\(analyze export\): improve export default analysis [\#19](https://github.com/bubablue/dynamic-import-references/pull/19) ([gxy01](https://github.com/gxy01))
+
+## [v1.2.0](https://github.com/bubablue/dynamic-import-references/tree/v1.2.0) (2025-10-15)
+
+[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v1.1.0...v1.2.0)
 
 **Closed issues:**
 
@@ -10,6 +44,7 @@
 
 **Merged pull requests:**
 
+- feat\(dependencies update\): Update dependencies and Readme [\#18](https://github.com/bubablue/dynamic-import-references/pull/18) ([bubablue](https://github.com/bubablue))
 - feat\(custom-functions\): Add support for custom loaders [\#17](https://github.com/bubablue/dynamic-import-references/pull/17) ([bubablue](https://github.com/bubablue))
 
 ## [v1.1.0](https://github.com/bubablue/dynamic-import-references/tree/v1.1.0) (2025-08-14)
