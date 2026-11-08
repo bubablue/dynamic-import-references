@@ -12,7 +12,13 @@ jest.mock("vscode", () => ({
 }));
 
 jest.mock("../dynamicReferenceProvider", () => ({
-  DynamicReferenceProvider: jest.fn(),
+  DynamicReferenceProvider: jest.fn(function (this: Record<string, jest.Mock>) {
+    this.clearCache = jest.fn();
+    this.fileChanged = jest.fn();
+    this.fileCreated = jest.fn();
+    this.fileDeleted = jest.fn();
+    this.configChanged = jest.fn();
+  }),
 }));
 
 describe("VS Code Extension", () => {
@@ -37,6 +43,36 @@ describe("VS Code Extension", () => {
     );
 
     expect(context.subscriptions.length).toBeGreaterThan(0);
+  });
+
+  it("should clear the provider cache when custom matchers change", () => {
+    activate(context);
+    const provider = (vscode.languages.registerReferenceProvider as jest.Mock).mock.calls[0][1];
+    const onChange = (vscode.workspace.onDidChangeConfiguration as jest.Mock).mock.calls[0][0];
+    provider.clearCache.mockClear();
+
+    onChange({ affectsConfiguration: (key: string) => key === "dynamicImportReferences.customMatchers" });
+
+    expect(provider.clearCache).toHaveBeenCalledTimes(1);
+  });
+
+  it("should forward file system events to the provider", () => {
+    activate(context);
+    const provider = (vscode.languages.registerReferenceProvider as jest.Mock).mock.calls[0][1];
+    const [sources, configs] = (vscode.workspace.createFileSystemWatcher as jest.Mock).mock.results.map(
+      (result) => result.value
+    );
+    const uri = { fsPath: "/project/src/page.tsx" };
+
+    sources.onDidChange.mock.calls[0][0](uri);
+    sources.onDidCreate.mock.calls[0][0](uri);
+    sources.onDidDelete.mock.calls[0][0](uri);
+    configs.onDidChange.mock.calls[0][0]();
+
+    expect(provider.fileChanged).toHaveBeenCalledWith(uri.fsPath);
+    expect(provider.fileCreated).toHaveBeenCalledWith(uri.fsPath);
+    expect(provider.fileDeleted).toHaveBeenCalledWith(uri.fsPath);
+    expect(provider.configChanged).toHaveBeenCalledTimes(1);
   });
 
   it("should deactivate the extension and dispose of all subscriptions", () => {

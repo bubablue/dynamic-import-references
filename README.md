@@ -131,8 +131,8 @@ Download the latest `.vsix` file from [releases](https://github.com/bubablue/dyn
 
 | Language | Extensions | Supported Patterns |
 |----------|------------|-------------------|
-| **JavaScript** | `.js`, `.jsx` | `React.lazy()`, `dynamic()`, `loadable()` |
-| **TypeScript** | `.ts`, `.tsx` | `React.lazy()`, `dynamic()`, `loadable()`, with types |
+| **JavaScript** | `.js`, `.jsx`, `.mjs`, `.cjs` | `React.lazy()`, `dynamic()`, `loadable()`, `import()` |
+| **TypeScript** | `.ts`, `.tsx`, `.mts`, `.cts` | `React.lazy()`, `dynamic()`, `loadable()`, `import()`, with types |
 
 </div>
 
@@ -167,13 +167,29 @@ const MyComponent = lazy(() => import('./path/to/MyComponent'));
 // TypeScript with types
 const TypedComponent: React.ComponentType = lazy(() => import('./TypedComponent'));
 const TypedLoadable: LoadableComponent<any> = loadable(() => import('./TypedLoadable'));
+const WithProps = dynamic<Props>(() => import('./WithProps'), { ssr: false });
+
+// Wrappers used as object values
+export const Views = {
+  card: dynamic(() => import('./views/card')),
+  [Kind.Spread]: dynamic(() => import('./views/spread')),
+};
+
+// Named exports picked from the module
+const Chart = lazy(() => import('./charts').then((m) => ({ default: m.Chart })));
+
+// Plain import() calls
+const { loadUser } = await import('./api/user');
+const barrel = await import('./widgets/banner');
+barrel.default;
 ```
 
-### ❌ **Not Supported (Standard ES6 dynamic imports)**
+Imports are resolved like TypeScript resolves them: `paths` aliases (longest match wins), `baseUrl`, `extends` chains and the importer's own `tsconfig.json`/`jsconfig.json`. Barrels (`export { default } from './ui/banner'`), `export *` and `export default memo(Component)` are followed to the real declaration, so Find All References works from the component itself or from any file that imports it.
+
+### ❌ **Not Supported**
 ```javascript
-// These patterns are NOT detected by this extension:
-const module = await import('./module');
-const { Component } = await import('./Component');
+// Computed specifiers can't be resolved statically:
+const page = await import(`./pages/${name}`);
 ```
 
 ## ⚙️ Configuration
@@ -313,6 +329,16 @@ npm run watch-tests
 1. Press `F5` to launch the Extension Development Host
 2. Open a test project in the new window
 3. Test the extension functionality
+
+To try a local build on a real project while the Marketplace version is installed, start an isolated instance instead of installing the `.vsix`:
+
+```bash
+npm run package
+code --extensionDevelopmentPath="$PWD" \
+  --extensions-dir /tmp/dir-extensions \
+  --user-data-dir /tmp/dir-user \
+  /path/to/project
+```
 
 ### Building for Release
 ```bash

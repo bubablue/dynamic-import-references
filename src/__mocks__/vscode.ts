@@ -7,6 +7,15 @@ const vscode = {
       onDidChangeConfiguration: jest.fn().mockReturnValue({
         dispose: jest.fn(),
       }),
+      onDidChangeWorkspaceFolders: jest.fn().mockReturnValue({
+        dispose: jest.fn(),
+      }),
+      createFileSystemWatcher: jest.fn(() => ({
+        onDidChange: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+        onDidCreate: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+        onDidDelete: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+        dispose: jest.fn(),
+      })),
     },
     Position: jest.fn().mockImplementation((line, char) => ({ line, char })),
     Location: jest.fn().mockImplementation((uri, position) => ({ uri, position })),
