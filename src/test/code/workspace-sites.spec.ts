@@ -77,6 +77,18 @@ describe("WorkspaceSites", () => {
     expect(readSpy).not.toHaveBeenCalled();
   });
 
+  it("keeps the list of workspace files current", async () => {
+    const sites = new WorkspaceSites();
+    expect(sites.knownFiles()).toBeUndefined();
+    await sites.snapshot();
+
+    fixture.write("added.ts", "export const added = 1;");
+    sites.markChanged(fixture.file("added.ts"));
+    sites.markDeleted(fixture.file("plain.ts"));
+
+    expect([...(sites.knownFiles() ?? [])].sort()).toEqual([fixture.file("added.ts"), fixture.file("page.ts")]);
+  });
+
   it("drops deleted files", async () => {
     const sites = new WorkspaceSites();
     await sites.snapshot();

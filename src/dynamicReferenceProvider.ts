@@ -25,7 +25,7 @@ function isTarget(symbol: SymbolKey | undefined, target: SymbolKey): boolean {
 export class DynamicReferenceProvider implements vscode.ReferenceProvider {
   private readonly sites = new WorkspaceSites();
   private readonly tables = new ExportTables();
-  private readonly modules = new ModuleResolver();
+  private readonly modules = new ModuleResolver(() => this.sites.knownFiles());
 
   fileChanged(fsPath: string): void {
     this.sites.markChanged(fsPath);

@@ -25,7 +25,12 @@ export function extractImportSites(text: string): ImportSite[] {
 export class WorkspaceSites {
   private readonly sites = new Map<string, ImportSite[]>();
   private readonly dirty = new Set<string>();
+  private files: Set<string> | undefined;
   private initialScan: Promise<void> | undefined;
+
+  knownFiles(): ReadonlySet<string> | undefined {
+    return this.files;
+  }
 
   async snapshot(): Promise<ReadonlyMap<string, ImportSite[]>> {
     if (this.initialScan === undefined) {
@@ -43,23 +48,31 @@ export class WorkspaceSites {
   markChanged(fsPath: string): void {
     if (this.initialScan !== undefined && !EXCLUDED_SEGMENT.test(fsPath)) {
       this.dirty.add(fsPath);
+      this.files?.add(fsPath);
     }
   }
 
   markDeleted(fsPath: string): void {
     this.dirty.delete(fsPath);
     this.sites.delete(fsPath);
+    this.files?.delete(fsPath);
   }
 
   clear(): void {
     this.sites.clear();
     this.dirty.clear();
+    this.files = undefined;
     this.initialScan = undefined;
   }
 
   private async scanWorkspace(): Promise<void> {
-    const files = await vscode.workspace.findFiles(SOURCE_GLOB, EXCLUDED_GLOB);
-    await Promise.all(files.map((file) => this.scanFile(file.fsPath)));
+    const uris = await vscode.workspace.findFiles(SOURCE_GLOB, EXCLUDED_GLOB);
+    const files = new Set<string>();
+    for (const uri of uris) {
+      files.add(uri.fsPath);
+    }
+    this.files = files;
+    await Promise.all(uris.map((uri) => this.scanFile(uri.fsPath)));
   }
 
   private async scanFile(fsPath: string): Promise<void> {

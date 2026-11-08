@@ -218,4 +218,61 @@ describe("ModuleResolver", () => {
     expect(resolver.resolve("left-pad", fixture.file("src/app.js"))).toBeUndefined();
     expect(resolver.resolve("react", fixture.file("src/app.js"))).toBeUndefined();
   });
+
+  describe("aliases that are not declared in any config", () => {
+    const project = {
+      "package.json": JSON.stringify({ name: "app" }),
+      "vite.config.js": "export default { resolve: { alias: { '@': 'src', '@ui': 'src/shared/ui' } } };",
+      "src/components/Modal.jsx": "",
+      "src/features/cart/Cart.jsx": "",
+      "src/features/cart/components/Modal.jsx": "",
+      "src/shared/ui/Input.jsx": "",
+      "src/lib/Chart.jsx": "",
+      "src/widgets/a/Card.jsx": "",
+      "src/widgets/b/Card.jsx": "",
+      "node_modules/lodash/package.json": JSON.stringify({ main: "lodash.js" }),
+      "node_modules/lodash/lodash.js": "",
+      "src/lodash/index.js": "",
+    };
+    const workspaceFiles = () =>
+      new Set(Object.keys(project).filter((file) => file.startsWith("src/")).map((file) => fixture.file(file)));
+
+    it("resolves from the package root down, so feature-local files never shadow the alias", () => {
+      fixture = createFixture(project);
+      const resolver = new ModuleResolver(workspaceFiles);
+      const from = fixture.file("src/features/cart/Cart.jsx");
+
+      expect(resolver.resolve("@/components/Modal", from)).toBe(fixture.file("src/components/Modal.jsx"));
+      expect(resolver.resolve("~/components/Modal", from)).toBe(fixture.file("src/components/Modal.jsx"));
+      expect(resolver.resolve("lib/Chart", from)).toBe(fixture.file("src/lib/Chart.jsx"));
+    });
+
+    it("accepts a workspace match only when it is unique", () => {
+      fixture = createFixture(project);
+      const resolver = new ModuleResolver(workspaceFiles);
+      const from = fixture.file("src/features/cart/Cart.jsx");
+
+      expect(resolver.resolve("@ui/Input", from)).toBe(fixture.file("src/shared/ui/Input.jsx"));
+      expect(resolver.resolve("@widgets/Card", from)).toBeUndefined();
+      expect(resolver.resolve("@widgets/b/Card", from)).toBe(fixture.file("src/widgets/b/Card.jsx"));
+    });
+
+    it("never treats an installed package as an alias", () => {
+      fixture = createFixture(project);
+      const resolver = new ModuleResolver(workspaceFiles);
+
+      expect(resolver.resolve("lodash", fixture.file("src/features/cart/Cart.jsx"))).toBeUndefined();
+    });
+
+    it("retries once the workspace file list is available", () => {
+      fixture = createFixture(project);
+      let files: ReadonlySet<string> | undefined;
+      const resolver = new ModuleResolver(() => files);
+      const from = fixture.file("src/features/cart/Cart.jsx");
+
+      expect(resolver.resolve("@ui/Input", from)).toBeUndefined();
+      files = workspaceFiles();
+      expect(resolver.resolve("@ui/Input", from)).toBe(fixture.file("src/shared/ui/Input.jsx"));
+    });
+  });
 });

@@ -25,6 +25,7 @@ const NODE_MODULES_SEGMENT = `${path.sep}node_modules${path.sep}`;
 const EXPORT_CONDITIONS = ["source", "development", "import", "module", "browser", "node", "default", "require", "types"];
 const ENTRY_FIELDS = ["source", "module", "main"] as const;
 const DECLARATION_FILE = /\.d\.[cm]?ts$/;
+const ALIAS_SIGIL = /^[@~$#]+/;
 
 type EntryKind = "file" | "dir" | "missing";
 
@@ -137,7 +138,50 @@ function splitPackageName(specifier: string): { name: string; subpath: string } 
 
 const acceptsAny = (): boolean => true;
 
+function aliasForms(specifier: string): string[] {
+  const segments = specifier.split("/").filter((segment) => segment !== "");
+  if (segments.length === 0) {
+    return [];
+  }
+  const forms = [segments.join("/")];
+  const bare = segments[0].replace(ALIAS_SIGIL, "");
+  if (bare !== segments[0] && bare !== "") {
+    forms.push([bare, ...segments.slice(1)].join("/"));
+  }
+  if (segments.length > 1) {
+    forms.push(segments.slice(1).join("/"));
+  }
+  return forms;
+}
+
+function modulePath(file: string): string {
+  const stem = file.slice(0, file.length - path.extname(file).length);
+  return path.basename(stem) === "index" ? path.dirname(stem) : stem;
+}
+
+function moduleTail(form: string): string {
+  const extension = path.extname(form);
+  const stem = CODE_EXTENSIONS.includes(extension) ? form.slice(0, -extension.length) : form;
+  return stem.endsWith("/index") ? stem.slice(0, -"/index".length) : stem;
+}
+
+function descendingDirs(root: string, leaf: string): string[] {
+  const relative = path.relative(root, leaf);
+  const dirs = [root];
+  if (relative === "" || relative.startsWith("..") || path.isAbsolute(relative)) {
+    return dirs;
+  }
+  let current = root;
+  for (const segment of relative.split(path.sep)) {
+    current = path.join(current, segment);
+    dirs.push(current);
+  }
+  return dirs;
+}
+
 export class ModuleResolver {
+  private workspaceFileIndex: Map<string, string[]> | undefined;
+  private workspaceFilesPending = false;
   private readonly entryKinds = new Map<string, EntryKind>();
   private readonly configPathByDir = new Map<string, string | null>();
   private readonly configs = new Map<string, TsConfigPaths>();
@@ -146,6 +190,8 @@ export class ModuleResolver {
   private readonly packageJsons = new Map<string, PackageJson | null>();
   private readonly realpaths = new Map<string, string>();
 
+  constructor(private readonly workspaceFiles: () => ReadonlySet<string> | undefined = () => undefined) {}
+
   resolve(specifier: string, fromFile: string): string | undefined {
     const fromDir = path.dirname(fromFile);
     const cacheKey = `${fromDir}\u0000${specifier}`;
@@ -153,12 +199,16 @@ export class ModuleResolver {
     if (cached !== undefined) {
       return cached ?? undefined;
     }
+    this.workspaceFilesPending = false;
     const resolved = this.compute(specifier, fromDir);
-    this.resolutions.set(cacheKey, resolved ?? null);
+    if (resolved !== undefined || !this.workspaceFilesPending) {
+      this.resolutions.set(cacheKey, resolved ?? null);
+    }
     return resolved;
   }
 
   invalidateFileSystem(): void {
+    this.workspaceFileIndex = undefined;
     this.entryKinds.clear();
     this.realpaths.clear();
     this.configPathByDir.clear();
@@ -209,7 +259,86 @@ export class ModuleResolver {
       }
     }
 
-    return this.resolveWorkspacePackage(specifier, fromDir);
+    const parsed = splitPackageName(specifier);
+    const packageDir = parsed === undefined ? undefined : this.findPackageDir(parsed.name, fromDir);
+    if (packageDir !== undefined) {
+      return this.resolvePackageEntry(packageDir, parsed!.subpath);
+    }
+    return this.resolveUndeclaredAlias(specifier, fromDir);
+  }
+
+  private resolveUndeclaredAlias(specifier: string, fromDir: string): string | undefined {
+    const forms = aliasForms(specifier);
+    if (forms.length === 0) {
+      return undefined;
+    }
+    const root = this.nearestPackage(fromDir)?.dir;
+    if (root !== undefined) {
+      const dirs = descendingDirs(root, fromDir);
+      for (const form of forms) {
+        for (const dir of dirs) {
+          const resolved = this.probe(path.join(dir, form));
+          if (resolved !== undefined) {
+            return resolved;
+          }
+        }
+      }
+    }
+    return this.uniqueWorkspaceMatch(forms);
+  }
+
+  private uniqueWorkspaceMatch(forms: string[]): string | undefined {
+    const index = this.workspaceIndex();
+    if (index === undefined) {
+      this.workspaceFilesPending = true;
+      return undefined;
+    }
+    for (const form of forms) {
+      const tail = moduleTail(form);
+      const candidates = index.get(tail.slice(tail.lastIndexOf("/") + 1));
+      if (candidates === undefined) {
+        continue;
+      }
+      const suffix = path.sep + tail.split("/").join(path.sep);
+      let match: string | undefined;
+      for (const file of candidates) {
+        if (!modulePath(file).endsWith(suffix)) {
+          continue;
+        }
+        if (match !== undefined) {
+          return undefined;
+        }
+        match = file;
+      }
+      if (match !== undefined) {
+        return match;
+      }
+    }
+    return undefined;
+  }
+
+  private workspaceIndex(): Map<string, string[]> | undefined {
+    if (this.workspaceFileIndex === undefined) {
+      const files = this.workspaceFiles();
+      if (files === undefined) {
+        return undefined;
+      }
+      const index = new Map<string, string[]>();
+      for (const file of files) {
+        if (file.includes(NODE_MODULES_SEGMENT)) {
+          continue;
+        }
+        const key = path.basename(modulePath(file));
+        const list = index.get(key);
+        if (list === undefined) {
+          index.set(key, [file]);
+        } else {
+          list.push(file);
+        }
+      }
+      this.workspaceFileIndex = index;
+    }
+    return this.workspaceFileIndex;
   }
 
   private resolvePackageImport(specifier: string, fromDir: string): string | undefined {
@@ -221,16 +350,12 @@ export class ModuleResolver {
     return this.resolveFromMap(owner.dir, imports as Record<string, unknown>, specifier);
   }
 
-  private resolveWorkspacePackage(specifier: string, fromDir: string): string | undefined {
-    const parsed = splitPackageName(specifier);
-    if (parsed === undefined) {
-      return undefined;
-    }
+  private findPackageDir(name: string, fromDir: string): string | undefined {
     let dir = fromDir;
     for (;;) {
-      const candidate = path.join(dir, "node_modules", parsed.name);
+      const candidate = path.join(dir, "node_modules", name);
       if (this.kindOf(candidate) === "dir") {
-        return this.resolvePackageEntry(candidate, parsed.subpath);
+        return candidate;
       }
       const parent = path.dirname(dir);
       if (parent === dir) {

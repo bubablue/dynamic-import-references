@@ -190,7 +190,12 @@ No TypeScript or config file is required: relative imports always resolve. Alias
 - `package.json` `imports`: `#components/*` subpath patterns and conditions
 - Workspace packages linked in `node_modules` (npm, yarn, pnpm): `exports`, then `source`/`module`/`main`
 
-Third-party packages are never scanned. Aliases that only exist in a bundler config (Vite or webpack `resolve.alias`) are not read; mirror them in `jsconfig.json` `paths`.
+Aliases that aren't declared in any of those, such as Vite, webpack, Babel or Metro aliases, are inferred:
+
+- `@/components/Modal`, `~/utils/format`, `@components/Modal` and `src/lib/chart`-style imports are tried from the package root down towards the importer, so a feature-local `components/Modal` never shadows the shared one
+- Other aliases (`@ui/Input` → `src/shared/ui/Input`) resolve only when exactly one file in the workspace matches; ambiguous matches are skipped rather than guessed
+
+Third-party packages are never scanned, and a specifier that names an installed package is never treated as an alias.
 
 Barrels (`export { default } from './ui/banner'`), `export *` and `export default memo(Component)` are followed to the real declaration, so Find All References works from the component itself or from any file that imports it.
 

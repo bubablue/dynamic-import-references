@@ -191,4 +191,29 @@ describe("DynamicReferenceProvider", () => {
       "src/pages/Home.jsx:5:53-59",
     ]);
   });
+
+  it("resolves aliases that only exist in a bundler config", async () => {
+    fixture.cleanup();
+    fixture = createFixture({
+      "package.json": JSON.stringify({ name: "app" }),
+      "vite.config.js": "export default { resolve: { alias: { '@': '/src' } } };",
+      "src/components/Modal.jsx": "export default function Modal() {\n  return null;\n}\n",
+      "src/features/cart/components/Modal.jsx": "export default function CartModal() {\n  return null;\n}\n",
+      "src/features/cart/Cart.jsx": [
+        "import { lazy } from 'react';",
+        "const Shared = lazy(() => import('@/components/Modal'));",
+        "const Local = lazy(() => import('./components/Modal'));",
+      ].join("\n"),
+    });
+    (vscode.workspace.findFiles as jest.Mock).mockResolvedValue(
+      ["src/components/Modal.jsx", "src/features/cart/components/Modal.jsx", "src/features/cart/Cart.jsx"].map((file) => ({
+        fsPath: fixture.file(file),
+      }))
+    );
+
+    expect(await find("src/components/Modal.jsx", "Modal")).toEqual(["src/features/cart/Cart.jsx:2:16-20"]);
+    expect(await find("src/features/cart/components/Modal.jsx", "CartModal")).toEqual([
+      "src/features/cart/Cart.jsx:3:15-19",
+    ]);
+  });
 });
