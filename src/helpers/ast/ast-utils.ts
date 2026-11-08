@@ -12,20 +12,8 @@ export function parseCodeToAST(text: string) {
         "jsx",
         "typescript",
         "decorators-legacy",
-        "classProperties",
-        "objectRestSpread",
         "functionBind",
         "exportDefaultFrom",
-        "exportNamespaceFrom",
-        "dynamicImport",
-        "nullishCoalescingOperator",
-        "optionalChaining",
-        "optionalCatchBinding",
-        "topLevelAwait",
-        "asyncGenerators",
-        "bigInt",
-        "logicalAssignment",
-        "numericSeparator",
       ],
       ranges: true,
     });
@@ -34,7 +22,7 @@ export function parseCodeToAST(text: string) {
     try {
       return babelParser.parse(text, {
         sourceType: "module",
-        plugins: ["jsx", "typescript", "dynamicImport"],
+        plugins: ["jsx", "typescript"],
         ranges: true,
       });
     } catch (fallbackError) {

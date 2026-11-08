@@ -131,8 +131,8 @@ Download the latest `.vsix` file from [releases](https://github.com/bubablue/dyn
 
 | Language | Extensions | Supported Patterns |
 |----------|------------|-------------------|
-| **JavaScript** | `.js`, `.jsx` | `React.lazy()`, `dynamic()`, `loadable()` |
-| **TypeScript** | `.ts`, `.tsx` | `React.lazy()`, `dynamic()`, `loadable()`, with types |
+| **JavaScript** | `.js`, `.jsx`, `.mjs`, `.cjs` | `React.lazy()`, `dynamic()`, `loadable()`, `import()` |
+| **TypeScript** | `.ts`, `.tsx`, `.mts`, `.cts` | `React.lazy()`, `dynamic()`, `loadable()`, `import()`, with types |
 
 </div>
 
@@ -167,13 +167,42 @@ const MyComponent = lazy(() => import('./path/to/MyComponent'));
 // TypeScript with types
 const TypedComponent: React.ComponentType = lazy(() => import('./TypedComponent'));
 const TypedLoadable: LoadableComponent<any> = loadable(() => import('./TypedLoadable'));
+const WithProps = dynamic<Props>(() => import('./WithProps'), { ssr: false });
+
+// Wrappers used as object values
+export const Views = {
+  card: dynamic(() => import('./views/card')),
+  [Kind.Spread]: dynamic(() => import('./views/spread')),
+};
+
+// Named exports picked from the module
+const Chart = lazy(() => import('./charts').then((m) => ({ default: m.Chart })));
+
+// Plain import() calls
+const { loadUser } = await import('./api/user');
+const barrel = await import('./widgets/banner');
+barrel.default;
 ```
 
-### ❌ **Not Supported (Standard ES6 dynamic imports)**
+No TypeScript or config file is required: relative imports always resolve. Aliases are read from:
+
+- `tsconfig.json` / `jsconfig.json`: `paths` (longest match wins), `baseUrl` and `extends` chains, from the importer's nearest config
+- `package.json` `imports`: `#components/*` subpath patterns and conditions
+- Workspace packages linked in `node_modules` (npm, yarn, pnpm): `exports`, then `source`/`module`/`main`
+
+Aliases that aren't declared in any of those, such as Vite, webpack, Babel or Metro aliases, are inferred:
+
+- `@/components/Modal`, `~/utils/format`, `@components/Modal` and `src/lib/chart`-style imports are tried from the package root down towards the importer, so a feature-local `components/Modal` never shadows the shared one
+- Other aliases (`@ui/Input` → `src/shared/ui/Input`) resolve only when exactly one file in the workspace matches; ambiguous matches are skipped rather than guessed
+
+Third-party packages are never scanned, and a specifier that names an installed package is never treated as an alias.
+
+Barrels (`export { default } from './ui/banner'`), `export *` and `export default memo(Component)` are followed to the real declaration, so Find All References works from the component itself or from any file that imports it.
+
+### ❌ **Not Supported**
 ```javascript
-// These patterns are NOT detected by this extension:
-const module = await import('./module');
-const { Component } = await import('./Component');
+// Computed specifiers can't be resolved statically:
+const page = await import(`./pages/${name}`);
 ```
 
 ## ⚙️ Configuration
@@ -280,7 +309,7 @@ The extension automatically detects these patterns without configuration:
 
 <div align="center">
 
-**Node.js 16+**, **npm** and **VS Code 1.60+**
+**Node.js 24+**, **npm** and **VS Code 1.104+**
 
 </div>
 
@@ -313,6 +342,16 @@ npm run watch-tests
 1. Press `F5` to launch the Extension Development Host
 2. Open a test project in the new window
 3. Test the extension functionality
+
+To try a local build on a real project while the Marketplace version is installed, start an isolated instance instead of installing the `.vsix`:
+
+```bash
+npm run package
+code --extensionDevelopmentPath="$PWD" \
+  --extensions-dir /tmp/dir-extensions \
+  --user-data-dir /tmp/dir-user \
+  /path/to/project
+```
 
 ### Building for Release
 ```bash

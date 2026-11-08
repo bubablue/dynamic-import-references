@@ -1,6 +1,13 @@
 import * as babelParser from "@babel/parser";
 import { parseCodeToAST, traverse } from "../../helpers/ast/ast-utils";
 
+jest.mock("@babel/parser", () => {
+  const actual = jest.requireActual("@babel/parser");
+  return { ...actual, parse: jest.fn(actual.parse) };
+});
+
+const parseMock = babelParser.parse as jest.MockedFunction<typeof babelParser.parse>;
+
 jest.mock("../../helpers/utils/logger", () => ({
   log: {
     warn: jest.fn(),
@@ -93,15 +100,8 @@ describe("ast-utils", () => {
     it("should use fallback parser for problematic code", () => {
       const { log } = require("../../helpers/utils/logger");
 
-      const originalParse = babelParser.parse;
-      let callCount = 0;
-
-      jest.spyOn(babelParser, "parse").mockImplementation((text, options) => {
-        callCount++;
-        if (callCount === 1) {
-          throw new Error("Primary parsing failed");
-        }
-        return originalParse(text, options);
+      parseMock.mockImplementationOnce(() => {
+        throw new Error("Primary parsing failed");
       });
 
       const code = `const simple = 'test';`;
@@ -119,9 +119,10 @@ describe("ast-utils", () => {
     it("should throw error when both primary and fallback parsing fail", () => {
       const { log } = require("../../helpers/utils/logger");
 
-      jest.spyOn(babelParser, "parse").mockImplementation(() => {
+      const failure = () => {
         throw new Error("Parsing failed");
-      });
+      };
+      parseMock.mockImplementationOnce(failure).mockImplementationOnce(failure);
 
       const code = `invalid syntax {{{`;
 

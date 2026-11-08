@@ -1,82 +1,93 @@
-import * as fs from "fs/promises";
 import { loadTsConfig } from "../../helpers/ts-config/load-ts-config";
-
-// We'll mock the filesystem module to avoid actual disk I/O.
-jest.mock("fs/promises");
+import { createFixture, Fixture } from "../fixtures/create-fixture";
 
 describe("loadTsConfig", () => {
-  const mockedReadFile = fs.readFile as jest.MockedFunction<typeof fs.readFile>;
+  let fixture: Fixture;
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+  afterEach(() => fixture.cleanup());
 
-  it("returns an empty object if reading the file fails", async () => {
-    // If readFile throws an error, the function should catch it and return {}
-    mockedReadFile.mockRejectedValueOnce(new Error("File not found"));
-
-    const result = await loadTsConfig("/path/to/tsconfig.json");
-    expect(result).toEqual({});
-  });
-
-  it('returns the "paths" from a basic tsconfig with no extends', async () => {
-    const sampleConfig = {
-      compilerOptions: {
-        paths: {
-          "@components/*": ["src/components/*"],
-          "@utils/*": ["src/utils/*"],
+  it("reads paths and baseUrl relative to the config, tolerating JSONC", () => {
+    fixture = createFixture({
+      "tsconfig.json": `{
+        // comment
+        "compilerOptions": {
+          "baseUrl": "./src",
+          "paths": { "@ui/*": ["ui/*"], },
         },
-      },
-    };
-    // readFile resolves to a JSON string
-    mockedReadFile.mockResolvedValueOnce(JSON.stringify(sampleConfig));
+      }`,
+    });
 
-    const result = await loadTsConfig("/path/to/tsconfig.json");
-    expect(result).toEqual({
-      "@components/*": ["src/components/*"],
-      "@utils/*": ["src/utils/*"],
+    expect(loadTsConfig(fixture.file("tsconfig.json"))).toEqual({
+      baseUrl: fixture.file("src"),
+      paths: { "@ui/*": ["ui/*"] },
+      pathsBasePath: fixture.root,
     });
   });
 
-  it("merges paths from extends", async () => {
-    const childConfig = {
-      extends: "../parent-tsconfig.json",
-      compilerOptions: {
-        paths: {
-          "@child/*": ["src/child/*"],
-          "@shared/*": ["src/childShared/*"], // override
-        },
-      },
-    };
+  it("inherits paths from an extended config and keeps the parent directory as base", () => {
+    fixture = createFixture({
+      "tsconfig.base.json": `{ "compilerOptions": { "paths": { "~/app/*": ["apps/app/src/*"] } } }`,
+      "apps/app/tsconfig.json": `{ "extends": "../../tsconfig.base.json", "compilerOptions": { "jsx": "preserve" } }`,
+    });
 
-    const parentConfig = {
-      compilerOptions: {
-        paths: {
-          "@parent/*": ["src/parent/*"],
-          "@shared/*": ["src/shared/*"],
-        },
-      },
-    };
-
-    // First call: child config
-    mockedReadFile.mockResolvedValueOnce(JSON.stringify(childConfig));
-    // Second call: parent config
-    mockedReadFile.mockResolvedValueOnce(JSON.stringify(parentConfig));
-
-    const result = await loadTsConfig("/path/to/child-tsconfig.json");
-    expect(mockedReadFile).toHaveBeenCalledTimes(2);
-    // Check the merged paths
-    expect(result).toEqual({
-      "@parent/*": ["src/parent/*"],
-      "@shared/*": ["src/childShared/*"], // child overrides
-      "@child/*": ["src/child/*"],
+    expect(loadTsConfig(fixture.file("apps/app/tsconfig.json"))).toEqual({
+      paths: { "~/app/*": ["apps/app/src/*"] },
+      pathsBasePath: fixture.root,
     });
   });
 
-  it("returns an empty object if the tsconfig is malformed JSON", async () => {
-    // readFile returns an invalid JSON
-    mockedReadFile.mockResolvedValueOnce("Not valid JSON...");
-    const result = await loadTsConfig("/path/to/bad-tsconfig.json");
-    expect(result).toEqual({});
+  it("lets the child override paths and resolves its own base", () => {
+    fixture = createFixture({
+      "tsconfig.base.json": `{ "compilerOptions": { "baseUrl": ".", "paths": { "a/*": ["x/*"] } } }`,
+      "pkg/tsconfig.json": `{ "extends": "../tsconfig.base", "compilerOptions": { "paths": { "b/*": ["y/*"] } } }`,
+    });
+
+    expect(loadTsConfig(fixture.file("pkg/tsconfig.json"))).toEqual({
+      baseUrl: fixture.root,
+      paths: { "b/*": ["y/*"] },
+      pathsBasePath: fixture.file("pkg"),
+    });
+  });
+
+  it("supports extends arrays where later entries win", () => {
+    fixture = createFixture({
+      "one.json": `{ "compilerOptions": { "baseUrl": "one", "paths": { "a/*": ["1/*"] } } }`,
+      "two.json": `{ "compilerOptions": { "paths": { "a/*": ["2/*"] } } }`,
+      "tsconfig.json": `{ "extends": ["./one.json", "./two.json"] }`,
+    });
+
+    expect(loadTsConfig(fixture.file("tsconfig.json"))).toEqual({
+      baseUrl: fixture.file("one"),
+      paths: { "a/*": ["2/*"] },
+      pathsBasePath: fixture.root,
+    });
+  });
+
+  it("resolves extends from node_modules packages", () => {
+    fixture = createFixture({
+      "node_modules/@acme/tsconfig/tsconfig.json": `{ "compilerOptions": { "paths": { "@acme/*": ["libs/*"] } } }`,
+      "app/tsconfig.json": `{ "extends": "@acme/tsconfig" }`,
+    });
+
+    expect(loadTsConfig(fixture.file("app/tsconfig.json"))).toEqual({
+      paths: { "@acme/*": ["libs/*"] },
+      pathsBasePath: fixture.file("node_modules/@acme/tsconfig"),
+    });
+  });
+
+  it("stops on circular extends", () => {
+    fixture = createFixture({
+      "a.json": `{ "extends": "./b.json", "compilerOptions": { "baseUrl": "a" } }`,
+      "b.json": `{ "extends": "./a.json", "compilerOptions": { "baseUrl": "b" } }`,
+    });
+
+    expect(loadTsConfig(fixture.file("a.json"))).toEqual({ baseUrl: fixture.file("a") });
+  });
+
+  it("returns an empty config for missing or invalid files", () => {
+    fixture = createFixture({ "broken.json": "not json at all {" });
+
+    expect(loadTsConfig(fixture.file("missing.json"))).toEqual({});
+    expect(loadTsConfig(fixture.file("broken.json"))).toEqual({});
   });
 });
