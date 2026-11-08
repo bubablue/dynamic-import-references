@@ -158,4 +158,37 @@ describe("DynamicReferenceProvider", () => {
       )
     ).resolves.toEqual([]);
   });
+
+  it("works in JavaScript projects without tsconfig or jsconfig", async () => {
+    fixture.cleanup();
+    fixture = createFixture({
+      "package.json": JSON.stringify({ imports: { "#widgets/*": "./src/widgets/*.jsx" } }),
+      "src/widgets/Banner.jsx": "export default function Banner() {\n  return null;\n}\n",
+      "src/pages/Home.jsx": [
+        "import { lazy } from 'react';",
+        "const Relative = lazy(() => import('../widgets/Banner'));",
+        "const Aliased = lazy(() => import('#widgets/Banner'));",
+        "const Shared = lazy(() => import('@acme/ui'));",
+        "export const Home = () => <><Relative /><Aliased /><Shared /></>;",
+      ].join("\n"),
+      "packages/ui/package.json": JSON.stringify({ name: "@acme/ui", main: "src/Card.jsx" }),
+      "packages/ui/src/Card.jsx": "export default function Card() {\n  return null;\n}\n",
+    });
+    fs.mkdirSync(fixture.file("node_modules/@acme"), { recursive: true });
+    fs.symlinkSync(path.join("..", "..", "packages", "ui"), fixture.file("node_modules/@acme/ui"));
+    (vscode.workspace.findFiles as jest.Mock).mockResolvedValue(
+      ["src/widgets/Banner.jsx", "src/pages/Home.jsx", "packages/ui/src/Card.jsx"].map((file) => ({ fsPath: fixture.file(file) }))
+    );
+
+    expect(await find("src/widgets/Banner.jsx", "Banner")).toEqual([
+      "src/pages/Home.jsx:2:18-22",
+      "src/pages/Home.jsx:3:17-21",
+      "src/pages/Home.jsx:5:30-38",
+      "src/pages/Home.jsx:5:42-49",
+    ]);
+    expect(await find("packages/ui/src/Card.jsx", "Card")).toEqual([
+      "src/pages/Home.jsx:4:16-20",
+      "src/pages/Home.jsx:5:53-59",
+    ]);
+  });
 });

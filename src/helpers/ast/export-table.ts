@@ -20,8 +20,6 @@ export interface ExportTable {
   anonymousDefault: boolean;
 }
 
-const MAX_UNWRAP_DEPTH = 12;
-
 function exportedName(node: t.Identifier | t.StringLiteral): string {
   return t.isIdentifier(node) ? node.name : node.value;
 }
@@ -51,8 +49,8 @@ function addDeclaredNames(node: t.Node | null | undefined, into: Set<string>, al
   }
 }
 
-export function unwrapIdentifier(node: t.Node | null | undefined, depth = 0): t.Identifier | undefined {
-  if (!node || depth > MAX_UNWRAP_DEPTH) {
+export function unwrapIdentifier(node: t.Node | null | undefined): t.Identifier | undefined {
+  if (!node) {
     return undefined;
   }
   if (t.isIdentifier(node)) {
@@ -64,11 +62,11 @@ export function unwrapIdentifier(node: t.Node | null | undefined, depth = 0): t.
     t.isTSNonNullExpression(node) ||
     t.isParenthesizedExpression(node)
   ) {
-    return unwrapIdentifier(node.expression, depth + 1);
+    return unwrapIdentifier(node.expression);
   }
   if (t.isCallExpression(node)) {
     for (const argument of node.arguments) {
-      const found = unwrapIdentifier(argument, depth + 1);
+      const found = unwrapIdentifier(argument);
       if (found) {
         return found;
       }

@@ -70,7 +70,7 @@ function loadCustomMatchers(): void {
 
 function watchWorkspace(target: DynamicReferenceProvider): vscode.Disposable[] {
   const sources = vscode.workspace.createFileSystemWatcher(SOURCE_GLOB);
-  const configs = vscode.workspace.createFileSystemWatcher("**/{tsconfig,jsconfig}*.json");
+  const configs = vscode.workspace.createFileSystemWatcher("**/{tsconfig*.json,jsconfig*.json,package.json}");
   const onConfig = () => target.configChanged();
 
   return [

@@ -184,7 +184,15 @@ const barrel = await import('./widgets/banner');
 barrel.default;
 ```
 
-Imports are resolved like TypeScript resolves them: `paths` aliases (longest match wins), `baseUrl`, `extends` chains and the importer's own `tsconfig.json`/`jsconfig.json`. Barrels (`export { default } from './ui/banner'`), `export *` and `export default memo(Component)` are followed to the real declaration, so Find All References works from the component itself or from any file that imports it.
+No TypeScript or config file is required: relative imports always resolve. Aliases are read from:
+
+- `tsconfig.json` / `jsconfig.json`: `paths` (longest match wins), `baseUrl` and `extends` chains, from the importer's nearest config
+- `package.json` `imports`: `#components/*` subpath patterns and conditions
+- Workspace packages linked in `node_modules` (npm, yarn, pnpm): `exports`, then `source`/`module`/`main`
+
+Third-party packages are never scanned. Aliases that only exist in a bundler config (Vite or webpack `resolve.alias`) are not read; mirror them in `jsconfig.json` `paths`.
+
+Barrels (`export { default } from './ui/banner'`), `export *` and `export default memo(Component)` are followed to the real declaration, so Find All References works from the component itself or from any file that imports it.
 
 ### ❌ **Not Supported**
 ```javascript

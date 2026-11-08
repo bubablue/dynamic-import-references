@@ -21,27 +21,52 @@ const TS_EQUIVALENTS: Record<string, string[]> = {
 };
 
 const CONFIG_FILE_NAMES = ["tsconfig.json", "jsconfig.json"];
+const NODE_MODULES_SEGMENT = `${path.sep}node_modules${path.sep}`;
+const EXPORT_CONDITIONS = ["source", "development", "import", "module", "browser", "node", "default", "require", "types"];
+const ENTRY_FIELDS = ["source", "module", "main"] as const;
+const DECLARATION_FILE = /\.d\.[cm]?ts$/;
 
 type EntryKind = "file" | "dir" | "missing";
+
+interface PatternMatch<T> {
+  value: T;
+  captured: string;
+}
 
 interface PathsMatch {
   substitutions: string[];
   captured: string;
 }
 
-export function matchPathsPattern(
-  paths: Record<string, string[]>,
-  specifier: string
-): PathsMatch | undefined {
-  const exact = paths[specifier];
-  if (Array.isArray(exact) && !specifier.includes("*")) {
-    return { substitutions: exact, captured: "" };
+interface PackageJson {
+  exports?: unknown;
+  imports?: unknown;
+  source?: unknown;
+  module?: unknown;
+  main?: unknown;
+}
+
+interface PackageInfo {
+  dir: string;
+  json: PackageJson;
+}
+
+function matchPattern<T>(
+  entries: Record<string, T>,
+  specifier: string,
+  accepts: (value: T) => boolean
+): PatternMatch<T> | undefined {
+  if (!specifier.includes("*") && Object.prototype.hasOwnProperty.call(entries, specifier)) {
+    const exact = entries[specifier];
+    if (accepts(exact)) {
+      return { value: exact, captured: "" };
+    }
   }
 
-  let best: { prefixLength: number; match: PathsMatch } | undefined;
-  for (const [pattern, substitutions] of Object.entries(paths)) {
+  let best: { prefixLength: number; match: PatternMatch<T> } | undefined;
+  for (const [pattern, value] of Object.entries(entries)) {
     const star = pattern.indexOf("*");
-    if (star === -1 || !Array.isArray(substitutions)) {
+    if (star === -1 || !accepts(value)) {
       continue;
     }
     const prefix = pattern.slice(0, star);
@@ -50,25 +75,76 @@ export function matchPathsPattern(
       specifier.length >= prefix.length + suffix.length &&
       specifier.startsWith(prefix) &&
       specifier.endsWith(suffix);
-    if (fits && (!best || prefix.length > best.prefixLength)) {
+    if (fits && (best === undefined || prefix.length > best.prefixLength)) {
       best = {
         prefixLength: prefix.length,
-        match: {
-          substitutions,
-          captured: specifier.slice(prefix.length, specifier.length - suffix.length),
-        },
+        match: { value, captured: specifier.slice(prefix.length, specifier.length - suffix.length) },
       };
     }
   }
-
   return best?.match;
 }
+
+export function matchPathsPattern(
+  paths: Record<string, string[]>,
+  specifier: string
+): PathsMatch | undefined {
+  const match = matchPattern(paths, specifier, Array.isArray);
+  return match === undefined ? undefined : { substitutions: match.value, captured: match.captured };
+}
+
+function conditionTargets(value: unknown): string[] {
+  if (typeof value === "string") {
+    return [value];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap(conditionTargets);
+  }
+  if (value === null || typeof value !== "object") {
+    return [];
+  }
+  const conditions = value as Record<string, unknown>;
+  const targets: string[] = [];
+  for (const condition of EXPORT_CONDITIONS) {
+    if (condition in conditions) {
+      targets.push(...conditionTargets(conditions[condition]));
+    }
+  }
+  return targets;
+}
+
+function subpathMap(exportsField: unknown): Record<string, unknown> | undefined {
+  if (typeof exportsField === "string" || Array.isArray(exportsField)) {
+    return { ".": exportsField };
+  }
+  if (exportsField === null || typeof exportsField !== "object") {
+    return undefined;
+  }
+  const keys = Object.keys(exportsField);
+  return keys.length > 0 && keys.every((key) => key.startsWith("."))
+    ? (exportsField as Record<string, unknown>)
+    : { ".": exportsField };
+}
+
+function splitPackageName(specifier: string): { name: string; subpath: string } | undefined {
+  const parts = specifier.split("/");
+  const nameLength = specifier.startsWith("@") ? 2 : 1;
+  if (parts.length < nameLength || parts[0] === "" || parts[nameLength - 1] === "") {
+    return undefined;
+  }
+  return { name: parts.slice(0, nameLength).join("/"), subpath: parts.slice(nameLength).join("/") };
+}
+
+const acceptsAny = (): boolean => true;
 
 export class ModuleResolver {
   private readonly entryKinds = new Map<string, EntryKind>();
   private readonly configPathByDir = new Map<string, string | null>();
   private readonly configs = new Map<string, TsConfigPaths>();
   private readonly resolutions = new Map<string, string | null>();
+  private readonly packageByDir = new Map<string, PackageInfo | null>();
+  private readonly packageJsons = new Map<string, PackageJson | null>();
+  private readonly realpaths = new Map<string, string>();
 
   resolve(specifier: string, fromFile: string): string | undefined {
     const fromDir = path.dirname(fromFile);
@@ -84,13 +160,17 @@ export class ModuleResolver {
 
   invalidateFileSystem(): void {
     this.entryKinds.clear();
+    this.realpaths.clear();
     this.configPathByDir.clear();
+    this.packageByDir.clear();
     this.resolutions.clear();
   }
 
   invalidateConfigs(): void {
     this.configs.clear();
+    this.packageJsons.clear();
     this.configPathByDir.clear();
+    this.packageByDir.clear();
     this.resolutions.clear();
   }
 
@@ -99,14 +179,14 @@ export class ModuleResolver {
       return this.probe(path.resolve(fromDir, specifier));
     }
 
-    const config = this.configFor(fromDir);
-    if (!config) {
+    if (specifier.includes(":")) {
       return undefined;
     }
 
-    const match = config.paths ? matchPathsPattern(config.paths, specifier) : undefined;
+    const config = this.configFor(fromDir);
+    const match = config?.paths ? matchPathsPattern(config.paths, specifier) : undefined;
     if (match !== undefined) {
-      const base = config.baseUrl ?? config.pathsBasePath ?? fromDir;
+      const base = config!.baseUrl ?? config!.pathsBasePath ?? fromDir;
       for (const substitution of match.substitutions) {
         const resolved = this.probe(path.resolve(base, substitution.replace("*", match.captured)));
         if (resolved) {
@@ -115,11 +195,150 @@ export class ModuleResolver {
       }
     }
 
-    if (config.baseUrl) {
-      return this.probe(path.resolve(config.baseUrl, specifier));
+    if (specifier.startsWith("#")) {
+      const viaImports = this.resolvePackageImport(specifier, fromDir);
+      if (viaImports !== undefined) {
+        return viaImports;
+      }
     }
 
+    if (config?.baseUrl) {
+      const viaBaseUrl = this.probe(path.resolve(config.baseUrl, specifier));
+      if (viaBaseUrl !== undefined) {
+        return viaBaseUrl;
+      }
+    }
+
+    return this.resolveWorkspacePackage(specifier, fromDir);
+  }
+
+  private resolvePackageImport(specifier: string, fromDir: string): string | undefined {
+    const owner = this.nearestPackage(fromDir);
+    const imports = owner?.json.imports;
+    if (owner === undefined || imports === null || typeof imports !== "object") {
+      return undefined;
+    }
+    return this.resolveFromMap(owner.dir, imports as Record<string, unknown>, specifier);
+  }
+
+  private resolveWorkspacePackage(specifier: string, fromDir: string): string | undefined {
+    const parsed = splitPackageName(specifier);
+    if (parsed === undefined) {
+      return undefined;
+    }
+    let dir = fromDir;
+    for (;;) {
+      const candidate = path.join(dir, "node_modules", parsed.name);
+      if (this.kindOf(candidate) === "dir") {
+        return this.resolvePackageEntry(candidate, parsed.subpath);
+      }
+      const parent = path.dirname(dir);
+      if (parent === dir) {
+        return undefined;
+      }
+      dir = parent;
+    }
+  }
+
+  private resolvePackageEntry(packageDir: string, subpath: string): string | undefined {
+    const realDir = this.realpathOf(packageDir);
+    if (realDir.includes(NODE_MODULES_SEGMENT)) {
+      return undefined;
+    }
+    const json = this.packageJson(realDir);
+    const exportsMap = json === undefined ? undefined : subpathMap(json.exports);
+    if (exportsMap !== undefined) {
+      return this.resolveFromMap(realDir, exportsMap, subpath === "" ? "." : `./${subpath}`);
+    }
+    if (subpath !== "") {
+      return this.probe(path.join(realDir, subpath));
+    }
+    for (const field of ENTRY_FIELDS) {
+      const entry = json?.[field];
+      if (typeof entry === "string" && !DECLARATION_FILE.test(entry)) {
+        const resolved = this.probe(path.resolve(realDir, entry));
+        if (resolved !== undefined) {
+          return resolved;
+        }
+      }
+    }
+    return this.probe(path.join(realDir, "index"));
+  }
+
+  private resolveFromMap(baseDir: string, map: Record<string, unknown>, key: string): string | undefined {
+    const match = matchPattern(map, key, acceptsAny);
+    if (match === undefined) {
+      return undefined;
+    }
+    for (const target of conditionTargets(match.value)) {
+      if (DECLARATION_FILE.test(target)) {
+        continue;
+      }
+      const resolved = this.probe(path.resolve(baseDir, target.replace("*", match.captured)));
+      if (resolved !== undefined) {
+        return resolved;
+      }
+    }
     return undefined;
+  }
+
+  private nearestPackage(dir: string): PackageInfo | undefined {
+    const visited: string[] = [];
+    let current = dir;
+    let found: PackageInfo | null = null;
+    for (;;) {
+      const cached = this.packageByDir.get(current);
+      if (cached !== undefined) {
+        found = cached;
+        break;
+      }
+      visited.push(current);
+      const json = this.packageJson(current);
+      if (json !== undefined) {
+        found = { dir: current, json };
+        break;
+      }
+      const parent = path.dirname(current);
+      if (parent === current) {
+        break;
+      }
+      current = parent;
+    }
+    for (const visitedDir of visited) {
+      this.packageByDir.set(visitedDir, found);
+    }
+    return found ?? undefined;
+  }
+
+  private packageJson(dir: string): PackageJson | undefined {
+    let json = this.packageJsons.get(dir);
+    if (json === undefined) {
+      json = null;
+      const file = path.join(dir, "package.json");
+      if (this.kindOf(file) === "file") {
+        try {
+          const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
+          json = parsed !== null && typeof parsed === "object" ? (parsed as PackageJson) : null;
+        } catch {
+          json = null;
+        }
+      }
+      this.packageJsons.set(dir, json);
+    }
+    return json ?? undefined;
+  }
+
+  private realpathOf(filePath: string): string {
+    let real = this.realpaths.get(filePath);
+    if (real === undefined) {
+      try {
+        real = fs.realpathSync.native(filePath);
+      } catch {
+        real = filePath;
+      }
+      this.realpaths.set(filePath, real);
+    }
+    return real;
   }
 
   private probe(candidate: string): string | undefined {

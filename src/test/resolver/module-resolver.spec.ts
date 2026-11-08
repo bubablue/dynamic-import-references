@@ -1,3 +1,5 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
 import {
   matchPathsPattern,
   ModuleResolver,
@@ -139,5 +141,81 @@ describe("ModuleResolver", () => {
     const resolver = new ModuleResolver();
 
     expect(resolver.resolve("#lib/math", fixture.file("app.ts"))).toBe(fixture.file("lib/math.ts"));
+  });
+
+  it("resolves relative imports in plain JavaScript projects without any config", () => {
+    fixture = createFixture({
+      "src/app.jsx": "",
+      "src/pages/home.jsx": "",
+      "src/widgets/index.js": "",
+    });
+    const resolver = new ModuleResolver();
+    const from = fixture.file("src/app.jsx");
+
+    expect(resolver.resolve("./pages/home", from)).toBe(fixture.file("src/pages/home.jsx"));
+    expect(resolver.resolve("./widgets", from)).toBe(fixture.file("src/widgets/index.js"));
+    expect(resolver.resolve("lodash", from)).toBeUndefined();
+    expect(resolver.resolve("node:fs", from)).toBeUndefined();
+  });
+
+  it("resolves package.json imports with patterns and conditions", () => {
+    fixture = createFixture({
+      "package.json": JSON.stringify({
+        imports: {
+          "#widgets/*": "./src/widgets/*.jsx",
+          "#config": { types: "./types/config.d.ts", import: "./src/config.mjs", default: "./src/config.cjs" },
+        },
+      }),
+      "src/app.js": "",
+      "src/widgets/banner.jsx": "",
+      "src/config.mjs": "",
+      "types/config.d.ts": "",
+    });
+    const resolver = new ModuleResolver();
+    const from = fixture.file("src/app.js");
+
+    expect(resolver.resolve("#widgets/banner", from)).toBe(fixture.file("src/widgets/banner.jsx"));
+    expect(resolver.resolve("#config", from)).toBe(fixture.file("src/config.mjs"));
+    expect(resolver.resolve("#missing", from)).toBeUndefined();
+  });
+
+  it("resolves workspace packages through node_modules links", () => {
+    fixture = createFixture({
+      "apps/web/src/app.jsx": "",
+      "packages/ui/package.json": JSON.stringify({
+        name: "@acme/ui",
+        exports: { ".": { types: "./dist/index.d.ts", default: "./src/index.js" }, "./*": "./src/*.jsx" },
+      }),
+      "packages/ui/src/index.js": "",
+      "packages/ui/src/button.jsx": "",
+      "packages/utils/package.json": JSON.stringify({ name: "utils", main: "lib/main.js" }),
+      "packages/utils/lib/main.js": "",
+      "packages/utils/lib/format.js": "",
+    });
+    fs.mkdirSync(fixture.file("node_modules/@acme"), { recursive: true });
+    fs.symlinkSync(path.join("..", "..", "packages", "ui"), fixture.file("node_modules/@acme/ui"));
+    fs.symlinkSync(path.join("..", "packages", "utils"), fixture.file("node_modules/utils"));
+    const resolver = new ModuleResolver();
+    const from = fixture.file("apps/web/src/app.jsx");
+
+    expect(resolver.resolve("@acme/ui", from)).toBe(fixture.file("packages/ui/src/index.js"));
+    expect(resolver.resolve("@acme/ui/button", from)).toBe(fixture.file("packages/ui/src/button.jsx"));
+    expect(resolver.resolve("utils", from)).toBe(fixture.file("packages/utils/lib/main.js"));
+    expect(resolver.resolve("utils/lib/format", from)).toBe(fixture.file("packages/utils/lib/format.js"));
+  });
+
+  it("leaves third-party packages unresolved", () => {
+    fixture = createFixture({
+      "src/app.js": "",
+      "node_modules/.pnpm/left-pad@1.0.0/node_modules/left-pad/package.json": JSON.stringify({ main: "index.js" }),
+      "node_modules/.pnpm/left-pad@1.0.0/node_modules/left-pad/index.js": "",
+      "node_modules/react/package.json": JSON.stringify({ main: "index.js" }),
+      "node_modules/react/index.js": "",
+    });
+    fs.symlinkSync(path.join(".pnpm", "left-pad@1.0.0", "node_modules", "left-pad"), fixture.file("node_modules/left-pad"));
+    const resolver = new ModuleResolver();
+
+    expect(resolver.resolve("left-pad", fixture.file("src/app.js"))).toBeUndefined();
+    expect(resolver.resolve("react", fixture.file("src/app.js"))).toBeUndefined();
   });
 });
