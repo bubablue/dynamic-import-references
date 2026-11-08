@@ -1,8 +1,16 @@
 # Changelog
 
-## [1.3.0](https://github.com/bubablue/dynamic-import-references/tree/1.3.0) (2026-11-08)
+## [1.3.1](https://github.com/bubablue/dynamic-import-references/tree/1.3.1) (2026-11-08)
 
-[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v1.2.3...1.3.0)
+[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v1.3.0...1.3.1)
+
+**Merged pull requests:**
+
+- fix\(package\): Ship only the bundle and docs in the VSIX [\#26](https://github.com/bubablue/dynamic-import-references/pull/26) ([bubablue](https://github.com/bubablue))
+
+## [v1.3.0](https://github.com/bubablue/dynamic-import-references/tree/v1.3.0) (2026-11-08)
+
+[Full Changelog](https://github.com/bubablue/dynamic-import-references/compare/v1.2.3...v1.3.0)
 
 **Merged pull requests:**
 
