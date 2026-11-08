@@ -130,11 +130,12 @@ export function buildExportTable(ast: ParseResult<t.File>): ExportTable {
             table.named.set(exported, { source, imported: "*" });
           }
         } else if (t.isExportSpecifier(specifier)) {
+          const local = exportedName(specifier.local);
           if (source !== undefined) {
-            table.named.set(exported, { source, imported: specifier.local.name });
+            table.named.set(exported, { source, imported: local });
           } else {
-            table.named.set(exported, { local: specifier.local.name });
-            table.exportedLocals.add(specifier.local.name);
+            table.named.set(exported, { local });
+            table.exportedLocals.add(local);
           }
         }
       }

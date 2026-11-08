@@ -296,7 +296,7 @@ The extension automatically detects these patterns without configuration:
 
 <div align="center">
 
-**Node.js 16+**, **npm** and **VS Code 1.60+**
+**Node.js 24+**, **npm** and **VS Code 1.104+**
 
 </div>
 
